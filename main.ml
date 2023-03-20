@@ -2,8 +2,8 @@ type tprise = Bac | Reglette | Pince | Plat;;
 
 type prise = {
   difficulte: float;
-  type: tprise;
+  t: tprise;
   angle: int;
 };;
 
-let a = [|{difficulte = 5.5; type = Pince; angle = 0}|]
+let a = [|{difficulte = 5.5; t = Pince; angle = 0}|]
