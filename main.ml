@@ -1,27 +1,35 @@
-type tprise = Bac | Reglette | Pince | Plat;;
+type arbre = Char of int | Node of arbre * arbre
 
-type mouv = Basique | Croise | Jete | Epaule | Relance;;
 
-type prise = {
-  difficulte: float;
-  t: tprise;
-  angle: int;
-};;
+let rec priorite t l =
+    match t with
+    |Char i -> l.(i)
+    |Node(x, y) ->  (priorite x l) + (priorite y l)
+;;
 
-let a = Array.make 3 (Array.make 3 {difficulte = 0.0; t = Bac; angle = 0}) in
 
-let p = [|{difficulte = 5.5; t = Pince; angle = 0};
-{difficulte = 3.0; t = Bac; angle = 1};
-{difficulte = 6.0; t = Reglette; angle = 0};
-{difficulte = 2.0; t = Bac; angle = 4};
-{difficulte = 7.0; t = Plat; angle = 0};
-{difficulte = 1.0; t = Bac; angle = 2};
-{difficulte = 2.0; t = Bac; angle = 0};
-{difficulte = 6.0; t = Reglette; angle = 1};
-{difficulte = 3.0; t = Bac; angle = 7}|] in
 
-for i = 0 to Array.length a - 1 do
-  for j = 0 to Array.length a.(0) - 1 do
-    a.(i).(j) <- p.(i + j);
-  done;
-done;
+let construit_arbre occ =
+    let f = FilePriorite.cree 256 (Char 0) 0 in 
+    for i=0 to 255 do 
+        if occ.(i) > 0 then
+            FilePriorite.ajoute f (Char i) (-occ.(i)) 
+    done;
+    while (FilePriorite.taille f) >= 2 do 
+        let x = FilePriorite.retire f in 
+        let y = FilePriorite.retire f in 
+        FilePriorite.ajoute f (Node(fst x, fst y)) (snd x + snd y)
+    done;
+    fst (FilePriorite.retire f )
+;;
+
+
+let codes t =
+    let a = Array.make 256 [] in
+    let rec aux tree tab =
+        match tree with
+        |Char i -> a.(i) <- List.rev tab
+        |Node (x, y) -> ( (aux x (0::tab)); (aux y (1::tab)) )
+    in aux t [];
+    a 
+;;

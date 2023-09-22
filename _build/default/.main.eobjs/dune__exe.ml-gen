@@ -1,0 +1,6 @@
+(** @canonical Dune__exe.Dijkstra *)
+module Dijkstra = Dune__exe__Dijkstra
+
+
+(** @canonical Dune__exe.Main *)
+module Main = Dune__exe__Main
