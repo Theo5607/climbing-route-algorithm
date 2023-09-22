@@ -2,7 +2,7 @@ Projet TIPE Théo et Matthias
 
 <b>Simplifications:</b><br>
 -on se base sur un mur donné, dont on connaît déjà toutes les prises, les distances entre chacune d'elles, etc.<br>
--pour évaluer la difficulté d'un mouvement, on se limite dans l'approximation physique à la distance, à l'angle entre les deux prises et à leurs difficultés respectives (évaluées arbitrairement)
+-pour évaluer la difficulté d'un mouvement, on se limite dans l'approximation physique à la distance, à l'angle entre les deux prises et à leurs difficultés respectives (évaluées arbitrairement)<br>
 -on ne considère pas les mouvements des pieds<br>
 -on considère dans un premier temps que le grimpeur n'a qu'une seule main, peut-être plus tard nous considérerons les deux mains<br><br>
 
