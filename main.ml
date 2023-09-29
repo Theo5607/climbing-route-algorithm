@@ -1,5 +1,5 @@
 type arbre = Char of int | Node of arbre * arbre
-
+type graphe = int*int list array
 
 let rec priorite t l =
     match t with
