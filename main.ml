@@ -8,10 +8,10 @@ let initialise_estimation (g: graphe) (s: int) : int array=
     a
 
 
-let est_tendue d x y w =
+let est_tendue d x y w =  (* regarde si le chemin s --> x --(w)--> y est meilleur que celui s-->y  *)
     d.(y) > d.(x) + w
 
-let relache d x y w =
+let relache d x y w =     (* remplace le chemin s --> y par le chemin s --> x --(w)--> y qui est suposé meilleur *)
     d.(y) <- d.(x) + w
 
 let dijkstra (g: graphe) (s:int) =            (*renvoie un couple d * pred avec d les distances et pred les predecesseurs*)
