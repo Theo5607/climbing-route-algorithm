@@ -1,34 +1,21 @@
-type graphe = (int*int) list array  (*array de liste d'adjacence avec des couples (voisin, poids) *)
+type prise = { x : float; y : float}
 
-let inf = max_int
+let t_p = [|{x = 0.; y = 0.}; {x = 1.; y = 1.}; {x = 2.; y = 2.}|]
 
-let initialise_estimation (g: graphe) (s: int) : int array=   
-    let a = Array.make (Array.length g) inf in
-    a.(s) <- 0;
-    a
+let heuristique i j t_p =
+    let p1 = t_p.(i) and p2 = t_p.(j) in
+    let p = sqrt((p2.x -. p1.x) ** 2. +. (p2.y -. p2.y) ** 2.) in
+    if p < 1.7 && p2.y > p1.y then Some p else None
 
-
-let est_tendue d x y w =  (* regarde si le chemin s --> x --(w)--> y est meilleur que celui s-->y  *)
-    d.(y) > d.(x) + w
-
-let relache d x y w =     (* remplace le chemin s --> y par le chemin s --> x --(w)--> y qui est suposé meilleur *)
-    d.(y) <- d.(x) + w
-
-let dijkstra (g: graphe) (s:int) =            (*renvoie un couple d * pred avec d les distances et pred les predecesseurs*)
-    let d = initialise_estimation g s in
-    let n = Array.length g in
-    let a_visiter = Fileprio.cree n 0 0 in
-    for i=0 to n-1 do
-        Fileprio.ajoute a_visiter i inf
+let init_graphe t_p =
+    let g = Array.make (Array.length t_p) [] in
+    for i = 0 to Array.length g - 1 do
+        for j = 0 to Array.length g - 1 do
+            if i <> j then begin
+                match (heuristique i j t_p) with
+                | Some x -> g.(i) <- (j, x)::g.(i)
+                | None -> ()
+            end
+        done;
     done;
-    Fileprio.diminue_priorite a_visiter s 0;
-    let pred = Array.make n None in
-    while not (Tas.est_vide a_visiter) do
-        let x = Fileprio.retire a_visiter in
-        List.iter (fun y -> if est_tendue d x (fst y) (snd y) then (
-                Fileprio.diminue_priorite a_visiter (fst y) (x + (snd y));
-                relache d x (fst y) (snd y) ;
-                pred.(fst y) <- Some x  ) ) g.(x) ;
-        
-    done;
-    d, pred
+    g
