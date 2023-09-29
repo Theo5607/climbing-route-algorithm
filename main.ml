@@ -4,7 +4,7 @@ let t_p = [|{x = 0.; y = 0.}; {x = 1.; y = 1.}; {x = 2.; y = 2.}|]
 
 let heuristique i j t_p =
     let p1 = t_p.(i) and p2 = t_p.(j) in
-    let p = sqrt((p2.x -. p1.x) ** 2. +. (p2.y -. p2.y) ** 2.) in
+    let p = sqrt ((p2.x -. p1.x) ** 2. +. (p2.y -. p1.y) ** 2.) in
     if p < 1.7 && p2.y > p1.y then Some p else None
 
 let init_graphe t_p =
