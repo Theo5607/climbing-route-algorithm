@@ -1,6 +1,6 @@
 type prise = { x : float; y : float}
 
-let t_p = [|{x = 0.; y = 0.}; {x = 1.; y = 1.}; {x = 2.; y = 2.}|]
+let t_p = [|{x = 0.; y = 0.}; {x = 1.; y = 1.}; {x = 5.; y = 2.}; {x=0.; y=2.}; {x=1.; y=3.}|]
 
 let heuristique i j t_p =
     let p1 = t_p.(i) and p2 = t_p.(j) in
