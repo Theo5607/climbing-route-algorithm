@@ -1,3 +1,5 @@
+open Raylib
+
 type prise = { x : float; y : float}
 
 let t_p = [|{x = 0.; y = 0.}; {x = 1.; y = 1.}; {x = 5.; y = 2.}; {x=0.; y=2.}; {x=1.; y=3.}|]
@@ -19,3 +21,11 @@ let init_graphe t_p =
         done;
     done;
     g
+
+let setup () =
+  init_window (8*32) ((8*32)+32) "Flood it";
+  set_target_fps 60;
+  begin_drawing ();
+  end_drawing ()
+
+let () = setup ()
