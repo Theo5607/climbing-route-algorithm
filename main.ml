@@ -28,4 +28,13 @@ let setup () =
   begin_drawing ();
   end_drawing ()
 
-let () = setup ()
+
+let rec loop () =
+  if window_should_close () then close_window ()
+  else
+    
+    begin_drawing ();
+    clear_background Color.raywhite;
+    loop ()
+
+let () = setup () |> loop
