@@ -19,3 +19,18 @@ let init_graphe t_p =
         done;
     done;
     g
+
+
+let txt_to_tab file =
+    let f = open_in file in
+    let l = ref [] in
+    begin
+        try
+          while true do
+            match String.split_on_char ' ' (input_line f) with
+            |[px; py; _] -> l := {x = float_of_string px; y = float_of_string py}::(!l)
+            |_ -> ()
+          done
+        with End_of_file -> close_in f
+    end;
+    !l
