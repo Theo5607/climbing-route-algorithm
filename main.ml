@@ -7,6 +7,15 @@ let heuristique i j t_p =
     let p = sqrt ((p2.x -. p1.x) ** 2. +. (p2.y -. p1.y) ** 2.) in
     if p < 1.7 && p2.y > p1.y then Some p else None
 
-let init_graphe =
-    let d = 1.7 in
-    let t = Array.sort (fun a b -> if a.x > a.y then 1 else if a.x < a.y else 0) t_p in
+let init_graphe t_p =
+    let g = Array.make (Array.length t_p) [] in
+    for i = 0 to Array.length g - 1 do
+        for j = 0 to Array.length g - 1 do
+            if i <> j then begin
+                match (heuristique i j t_p) with
+                | Some x -> g.(i) <- (j, x)::g.(i)
+                | None -> ()
+            end
+        done;
+    done;
+    g
