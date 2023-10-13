@@ -8,4 +8,7 @@ Projet TIPE Théo et Matthias
 
 <b>Plan du projet:</b><br>
 D'abord nous relions dans un graphe toutes les prises du mur entre elles afin de savoir lesquelles sont atteignables à partir d'une prise donnée. À partir de là, nous définissons une fonction H d'heuristique qui nous permet d'évaluer la difficulté d'un mouvement, puis que nous raffinerons au fur et à mesure. Cette fonction va nous permettre de pondérer chacune des arêtes de notre graphe et donc de déterminer le plus court chemin (d'un départ à une arrivée donnée) à l'aide de l'algorithme de Dijkstra.<br>
-L'objectif secondaire est de créer prodéduralement des blocs et, à l'aide d'un algorithme génétique, de les améliorer pour les rendre plus réalistes.
+L'objectif secondaire est de créer prodéduralement des blocs et, à l'aide d'un algorithme génétique, de les améliorer pour les rendre plus réalistes.<br>
+
+<b>Objectifs</b><br>
+-Pour la création du graphe, d'abord une implémentation naïve consistant à parcourir tout les points puis une implémentation par droite de balayage<br>
