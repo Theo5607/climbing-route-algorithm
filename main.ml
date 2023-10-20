@@ -47,7 +47,7 @@ let txt_to_tab file : prise array*(int option)*(int option)= (*parcours le fichi
 let meilleur_chemin (g : graphe) (d : int) (f : int) : int list option = (*renvoie une liste option (à l'envers) des sommets à emprunter pour aller du sommet d à f*)
     let dist, pred = dijkstra g d in 
     let rec aux s =
-        if s = d then Some []
+        if s = d then Some [s]
         else
             match pred.(s) with
             |None -> None
@@ -55,16 +55,23 @@ let meilleur_chemin (g : graphe) (d : int) (f : int) : int list option = (*renvo
     in aux f
 
 
-(* let chemin_to_arretes_listes (c : int list option) (a : prise array) =
+let chemin_to_aretes_listes (c : int list option) (a : prise array) =
+    let rec aux l f=
+        match l with 
+        |[] -> ()
+        |[_] -> ()
+        |i::j::q -> Printf.fprintf f "%f %f %f %f\n" a.(i).x a.(i).y a.(j).x a.(j).y; aux (j::q) f
+
+    in
     match c with 
     |None -> failwith "pas de chemin possible"
-    |Some l -> begin
- *)
+    |Some l -> let f = open_out "liste_aretes.txt" in aux l f; close_out f 
+
 
 
 let main () =
     let t_p, d, f = txt_to_tab "click_detection/liste_prises.txt" in 
-    let g = init_graphe (Array.of_list t_p) in 
+    let g = init_graphe t_p in 
     match d, f with
     |None, _ | _, None -> failwith "erreur, pas de prise de départ ou d'arrivée"
     |Some d', Some f' ->
