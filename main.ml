@@ -55,13 +55,12 @@ let meilleur_chemin (g : graphe) (d : int) (f : int) : int list option = (*renvo
     in aux f
 
 
-let chemin_to_aretes_listes (c : int list option) (a : prise array) =
+let chemin_to_aretes_liste (c : int list option) (a : prise array) =
     let rec aux l f=
         match l with 
         |[] -> ()
         |[_] -> ()
         |i::j::q -> Printf.fprintf f "%f %f %f %f\n" a.(i).x a.(i).y a.(j).x a.(j).y; aux (j::q) f
-
     in
     match c with 
     |None -> failwith "pas de chemin possible"
@@ -75,7 +74,7 @@ let main () =
     match d, f with
     |None, _ | _, None -> failwith "erreur, pas de prise de départ ou d'arrivée"
     |Some d', Some f' ->
-        meilleur_chemin g d' f'
+        chemin_to_aretes_liste (meilleur_chemin g d' f') t_p
     
 
 
