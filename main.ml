@@ -1,5 +1,6 @@
 type prise = { x : float; y : float}    (*les coordonnées sont exprimées en m*)
 
+
 let t_p = [|{x = 0.; y = 0.}; {x = 1.; y = 1.}; {x = 5.; y = 2.}; {x=0.; y=2.}; {x=1.; y=3.}|]
 
 let heuristique (i:int) (j:int) (t_p: prise array) : float option =   (*renvoie un float correspondant à la difficulté d'un déplacement entre deux prises

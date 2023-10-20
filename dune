@@ -1,6 +1,5 @@
 (executable
-    (name main)
-    (libraries raylib))
+    (name main))
 
 (env
   (dev
