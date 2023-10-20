@@ -1,13 +1,15 @@
-type prise = { x : float; y : float}
+type prise = { x : float; y : float}    (*les coordonnées sont exprimées en m*)
 
 let t_p = [|{x = 0.; y = 0.}; {x = 1.; y = 1.}; {x = 5.; y = 2.}; {x=0.; y=2.}; {x=1.; y=3.}|]
 
-let heuristique i j t_p =              (*renvoie un float correspondant à la difficulté d'un déplacement entre deux prises*)
+let heuristique (i:int) (j:int) (t_p: prise array) : float option =   (*renvoie un float correspondant à la difficulté d'un déplacement entre deux prises
+                                                                            ou None si le mouvement est impossible *)
     let p1 = t_p.(i) and p2 = t_p.(j) in
     let p = sqrt ((p2.x -. p1.x) ** 2. +. (p2.y -. p1.y) ** 2.) in
     if p < 1.7 && p2.y > p1.y then Some p else None
 
-let init_graphe t_p =                      (*initialise un graphe où seuls les sommets assez proches sont reliés et uniquement de bas en haut*)
+
+let init_graphe (t_p : prise array) : graphe =        (*initialise un graphe où seuls les sommets assez proches sont reliés et uniquement de bas en haut*)
     let g = Array.make (Array.length t_p) [] in
     for i = 0 to Array.length g - 1 do
         for j = 0 to Array.length g - 1 do
@@ -21,7 +23,7 @@ let init_graphe t_p =                      (*initialise un graphe où seuls les 
     g
 
 
-let txt_to_tab file =    (*parcours le fichier contenant les coordonnées des prises pour en faire une liste et sortir la prise de début et de fin*)
+let txt_to_tab file : prise array*(int option)*(int option)= (*parcours le fichier contenant les coordonnées des prises pour en faire un prise array et sortir la prise de début et de fin*)
     let f = open_in file in
     let l = ref [] in
     let i = ref (-1) in
@@ -40,19 +42,24 @@ let txt_to_tab file =    (*parcours le fichier contenant les coordonnées des pr
           done
         with End_of_file -> close_in f
     end;
-    !l,!deb,!fin
+    (Array.of_list !l),!deb,!fin
 
-let meilleur_chemin g d f =      (*renvoie une liste des arretes à emprunter pour aller du sommet d à f*)
-    let dist, next = dijkstra g f in 
+let meilleur_chemin (g : graphe) (d : int) (f : int) : int list option = (*renvoie une liste option (à l'envers) des sommets à emprunter pour aller du sommet d à f*)
+    let dist, pred = dijkstra g d in 
     let rec aux s =
-        if s = f then Some []
+        if s = d then Some []
         else
-            match next.(s) with
+            match pred.(s) with
             |None -> None
-            |Some s' -> match aux s' with |None -> None | Some l -> Some (s'::l)
-    in aux d
+            |Some s' -> match aux s' with |None -> None | Some l -> Some (s::l)
+    in aux f
 
 
+(* let chemin_to_arretes_listes (c : int list option) (a : prise array) =
+    match c with 
+    |None -> failwith "pas de chemin possible"
+    |Some l -> begin
+ *)
 
 
 let main () =
