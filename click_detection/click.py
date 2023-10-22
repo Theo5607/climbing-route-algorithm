@@ -23,14 +23,16 @@ def delete_selected_position():
         del positions[index]
         redraw_canvas()
 
-# Fonction pour supprimer un point en cliquant dessus
-def delete_point_on_click(event):
-    x, y = event.x, event.y
-    for i, (px, py, _) in enumerate(positions):
-        if abs(px - x) <= 5 and abs(py - y) <= 5:
-            del positions[i]
-            redraw_canvas()
-            break
+
+#Fonction pour effacer toutes les positions et les dessins
+def clear_all_positions():
+    global positions
+    global aretes
+    positions = []  
+    aretes = []
+    redraw_canvas()  # Efface tous les dessins sur la zone de dessin
+    position_listbox.delete(0, tk.END)  # Efface tous les éléments de la liste
+
 
 # Fonction pour redessiner tous les points sur la zone de dessin
 def redraw_canvas():
@@ -38,6 +40,10 @@ def redraw_canvas():
     for x, y, difficulty in positions:
         color = get_color_for_difficulty(difficulty)
         canvas.create_oval(x - 5, y - 5, x + 5, y + 5, fill=color)
+    for x1, y1, x2, y2 in aretes:
+        canvas.create_line(x1, y1, x2, y2, fill = "green", width = 5)
+
+
 
 # Fonction pour obtenir la couleur en fonction de la difficulté
 def get_color_for_difficulty(difficulty):
@@ -57,15 +63,23 @@ def get_color_for_difficulty(difficulty):
 # Fonction appelée lors du clic sur le bouton "Terminer"
 def finish_button_click():
     # exporte la liste des positions / diff
-    print("Terminer la saisie des positions")
     open('liste_prises.txt', 'w').close()
-    f = open("liste_prises.txt", "a")
+    file = open("liste_prises.txt", "a")
     for (px, py, diff) in positions:     
-        f.write(str(px/100) + " " + str((400-py)/100) + " " + str(diff) + "\n")
+        file.write(str(px/100) + " " + str((400-py)/100) + " " + str(diff) + "\n")
 
-    f.close()
-    root.destroy()
+    file.close()
 
+def affiche_graphe():
+    print("import")
+    file = open("liste_aretes.txt", 'r')
+    for line in file:
+        x1, y1, x2, y2 = line.split(" ") 
+        aretes.append((100*float(x1), 400-100*float(y1), 100*float(x2), 400-100*float(y2)))
+        positions.append((100*float(x1), 400-100*float(y1), -1))
+        positions.append((100*float(x2), 400-100*float(y2), -1))
+    file.close()
+    redraw_canvas()
 
 # Créer une fenêtre principale
 root = tk.Tk()
@@ -78,14 +92,13 @@ canvas.pack()
 # Associer la fonction de gestion des clics à la zone de dessin
 canvas.bind("<Button-1>", handle_mouse_click)
 
-# Associer la fonction pour supprimer un point en cliquant dessus
-canvas.bind("<Button-3>", delete_point_on_click)  # Utilise le bouton droit de la souris
-
 # Associer la fonction pour mettre à jour les coordonnées de la souris
 canvas.bind("<Motion>", update_mouse_coordinates)
 
-# Liste pour stocker les positions des clics
+# Listes pour stocker les positions des clics et les aretes
 positions = []
+
+aretes = []
 
 # Créer une liste déroulante pour choisir la difficulté
 difficulty_label = tk.Label(root, text="Choisissez la difficulté :")
@@ -100,15 +113,33 @@ difficulty_menu.pack()
 
 # Créer une liste déroulante pour afficher les positions
 position_listbox = tk.Listbox(root)
-position_listbox.pack()
+position_listbox.pack(side = "right")
+
+# Créer un conteneur Frame pour les boutons sur le côté
+button_frame = tk.Frame(root)
+button_frame.pack(side="left", padx=10)  # Utilisez "left" pour placer le conteneur sur le côté gauche
+
+
+
+
+# Bouton Exporter pour créer le fichier contenant les coordonnées des prises
+finish_button = tk.Button(button_frame, text="Exporter", command=finish_button_click)
+finish_button.pack()
+
+#Bouton importer pour recuperer et afficher le meilleur chemin
+affiche_button = tk.Button(button_frame, text="Importer", command=affiche_graphe)
+affiche_button.pack()
 
 # Bouton Supprimer pour supprimer la position sélectionnée
-delete_button = tk.Button(root, text="Supprimer", command=delete_selected_position)
+delete_button = tk.Button(button_frame, text="Supprimer", command=delete_selected_position)
 delete_button.pack()
 
-# Bouton Terminer pour indiquer la fin de la saisie des positions
-finish_button = tk.Button(root, text="Terminer", command=finish_button_click)
-finish_button.pack()
+# Bouton Effacer tout pour effacer toutes les positions
+clear_button = tk.Button(button_frame, text="Effacer tout", command=clear_all_positions)
+clear_button.pack()
+
+
+
 
 # Étiquette pour afficher les coordonnées de la souris
 mouse_coordinates_label = tk.Label(root, text="")

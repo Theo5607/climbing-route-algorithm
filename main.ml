@@ -8,7 +8,7 @@ let heuristique (i:int) (j:int) (t_p: prise array) : float option =   (*renvoie 
                                                                             ou None si le mouvement est impossible *)
     let p1 = t_p.(i) and p2 = t_p.(j) in
     let p = sqrt ((p2.x -. p1.x) ** 2. +. (p2.y -. p1.y) ** 2.) in
-    if p < 1.7 && p2.y > p1.y then Some p else None
+    if p < 1.7 (*&& p2.y > p1.y*) then Some p else None
 
 
 let init_graphe (t_p : prise array) : graphe =      (*initialise un graphe où seuls les sommets assez proches sont reliés et uniquement de bas en haut*)
@@ -66,7 +66,7 @@ let chemin_to_aretes_liste (c : int list option) (a : prise array) =
     in
     match c with 
     |None -> failwith "pas de chemin possible"
-    |Some l -> let f = open_out "liste_aretes.txt" in aux l f; close_out f 
+    |Some l -> let f = open_out "click_detection/liste_aretes.txt" in aux l f; close_out f 
 
 
 
@@ -77,7 +77,7 @@ let main () =
     |None, _ | _, None -> failwith "erreur, pas de prise de départ ou d'arrivée"
     |Some d', Some f' ->
         chemin_to_aretes_liste (meilleur_chemin g d' f') t_p
-    
-
+;;
+main ()
 
 
