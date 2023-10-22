@@ -1,4 +1,5 @@
 type prise = { x : float; y : float}    (*les coordonnées sont exprimées en m*)
+type graphe = (int*float) list array  (*array de liste d'adjacence avec des couples (voisin, poids) *)
 
 
 let t_p = [|{x = 0.; y = 0.}; {x = 1.; y = 1.}; {x = 5.; y = 2.}; {x=0.; y=2.}; {x=1.; y=3.}|]
@@ -10,7 +11,7 @@ let heuristique (i:int) (j:int) (t_p: prise array) : float option =   (*renvoie 
     if p < 1.7 && p2.y > p1.y then Some p else None
 
 
-let init_graphe (t_p : prise array) : graphe =        (*initialise un graphe où seuls les sommets assez proches sont reliés et uniquement de bas en haut*)
+let init_graphe (t_p : prise array) : graphe =      (*initialise un graphe où seuls les sommets assez proches sont reliés et uniquement de bas en haut*)
     let g = Array.make (Array.length t_p) [] in
     for i = 0 to Array.length g - 1 do
         for j = 0 to Array.length g - 1 do
@@ -45,8 +46,8 @@ let txt_to_tab file : prise array*(int option)*(int option)= (*parcours le fichi
     end;
     (Array.of_list !l),!deb,!fin
 
-let meilleur_chemin (g : graphe) (d : int) (f : int) : int list option = (*renvoie une liste option (à l'envers) des sommets à emprunter pour aller du sommet d à f*)
-    let dist, pred = dijkstra g d in 
+let meilleur_chemin (g : graphe)  (d : int) (f : int) : int list option = (*renvoie une liste option (à l'envers) des sommets à emprunter pour aller du sommet d à f*)
+    let _, pred = Dijkstra.dijkstra g d in 
     let rec aux s =
         if s = d then Some [s]
         else
