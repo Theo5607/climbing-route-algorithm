@@ -9,3 +9,9 @@ Projet TIPE Théo et Matthias
 <b>Plan du projet:</b><br>
 D'abord nous relions dans un graphe toutes les prises du mur entre elles afin de savoir lesquelles sont atteignables à partir d'une prise donnée. À partir de là, nous définissons une fonction H d'heuristique qui nous permet d'évaluer la difficulté d'un mouvement, puis que nous raffinerons au fur et à mesure. Cette fonction va nous permettre de pondérer chacune des arêtes de notre graphe et donc de déterminer le plus court chemin (d'un départ à une arrivée donnée) à l'aide de l'algorithme de Dijkstra.<br>
 L'objectif secondaire est de créer prodéduralement des blocs et, à l'aide d'un algorithme génétique, de les améliorer pour les rendre plus réalistes.
+
+<b>Heuristique V0:</b><br>
+Ne prend en compte que la distance euclidienne (et potentiellement si une prise est plus haute qu'une autre).
+
+<b>Heuristique V1:</b><br>
+Nous considérons maintenant en plus de la disance euclidienne, l'angle par rapport au sol des deux prises et leurs difficultés respectives, évaluées entre 1 et 5.
