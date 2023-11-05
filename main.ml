@@ -1,17 +1,68 @@
 type prise = { x : float; y : float; diff : float; teta : float }    (*les coordonnées sont exprimées en m, diff est un entier entre 1 et 5, teta un angle entre 0 et 359 représentant l'angle par rapport au sol de la prise.*)
 type graphe = (int*float) list array  (*array de liste d'adjacence avec des couples (voisin, poids) *)
+type etat = Droite | Gauche | Ramener
+type bloc = { mutable state : etat; mutable prise : int; mutable chemin : (int * etat) list; mutable diff_min : float }
 
 
 let t_p = [|{x = 0.; y = 0.; diff = 1.; teta = 0.}; {x = 1.; y = 1.; diff = 1.; teta = 0.}; {x = 5.; y = 2.; diff = 1.; teta = 0.}; {x=0.; y=2.; diff = 1.; teta = 0.}; {x=1.; y=3.; diff = 1.; teta = 0.}|]
 
-let heuristique (i:int) (j:int) (t_p: prise array) : float option =   (*renvoie un float entre 0 et 1 correspondant à la difficulté d'un déplacement entre deux prises
+let heuristique (i:int) (j:int) (e1:etat) (e2:etat) (t_p: prise array) : float option =   (*renvoie un float entre 0 et 1 correspondant à la difficulté d'un déplacement entre deux prises
                                                                             ou None si le mouvement est impossible *)
     let p1 = t_p.(i) and p2 = t_p.(j) in
     let p = sqrt ((p2.x -. p1.x) ** 2. +. (p2.y -. p1.y) ** 2.) in
-    if p < 1.7 (*&& p2.y > p1.y*) then Some ((p /. 1.7) *. ((p2.teta -. p1.teta) /. 360.) *. ((p1.diff +. p2.diff) /. 10.)) else None
+    if p < 1.7 (*&& p2.y > p1.y*)
+    && e1 != e2
+    then Some ((p /. 1.7) *. ((p2.teta -. p1.teta) /. 360.) *. ((p1.diff +. p2.diff) /. 10.)) else None
 
+(*backtracking*)
+let prises_depart_fin t_p =
+    let max, min = ref 0, ref 0 in
+    for i = 0 to Array.length t_p - 1 do
+        if t_p.(i).x > t_p.(!max).x then max := i
+        else if t_p.(i).x < t_p.(!min).x then min := i
+    done;
+    !max, !min
 
-let init_graphe (t_p : prise array) : graphe =      (*initialise un graphe où seuls les sommets assez proches sont reliés et uniquement de bas en haut*)
+let moov_poss bloc i e t_p =
+    match heuristique bloc.prise i bloc.state e t_p with
+    | None -> false
+    | Some x -> if not (List.mem i (List.map (fun e -> fst e) bloc.chemin)) then true else false
+
+let moovs bloc t_p =
+    let l = ref [] in
+    for i = 0 to Array.length t_p - 1 do
+        for j = 0 to 2 do
+            match j with
+            | 0 -> if moov_poss bloc i Droite t_p then l := i::(!l)
+            | 1 -> if moov_poss bloc i Gauche t_p then l := i::(!l)
+            | 2 -> if moov_poss bloc i Ramener t_p then l := i::(!l)
+            | _ -> failwith "erreur"
+        done;
+    done;
+    !l
+
+let complet bloc t_p =
+    let f, d = prises_depart_fin t_p in
+    if bloc.prise = f then true else false
+
+let defaire bloc t_p =
+    bloc.prise <- fst (List.hd (List.tl bloc.chemin));
+    bloc.chemin <- List.tl bloc.chemin
+
+let applique bloc i e t_p =
+    bloc.prise <- i;
+    bloc.state <- e;
+    bloc.chemin <- (i, e)::(bloc.chemin)
+
+let calcul_diff chemin =
+    let rec aux c diff =
+        match c with
+        | [] -> failwith "erreur"
+        | [x] -> diff
+        | t::q -> aux q (diff +. (Option.get (heuristique (fst (List.hd (List.tl q))) (fst (List.hd q)) (snd (List.hd (List.tl q))) (snd (List.hd q)) t_p)))
+    in (aux chemin 0.)/.(float_of_int (List.length chemin))
+
+(*let init_graphe (t_p : prise array) : graphe =      (*initialise un graphe où seuls les sommets assez proches sont reliés et uniquement de bas en haut*)
     let g = Array.make (Array.length t_p) [] in
     for i = 0 to Array.length g - 1 do
         for j = 0 to Array.length g - 1 do
@@ -22,8 +73,21 @@ let init_graphe (t_p : prise array) : graphe =      (*initialise un graphe où s
             end
         done;
     done;
-    g
+    g*)
 
+let chemin_optimal t_p =
+    let sol = ref [] in
+    let f, d = prises_depart_fin t_p in
+    let b = { state = Ramener; prise = d; chemin = [(d, Ramener)]; diff_min = 1. } in
+    let rec aux =
+        if complet b t_p && calcul_diff b.chemin < calcul_diff !sol then sol := b.chemin;
+        for i = 0 to 2 do
+            match i with
+            | 0 -> List.iter (fun e -> applique b e Droite t_p; if calcul_diff b.chemin < calcul_diff !sol then aux; defaire b t_p) (moovs b t_p)
+            | 1 -> List.iter (fun e -> applique b e Gauche t_p; if calcul_diff b.chemin < calcul_diff !sol then aux; defaire b t_p) (moovs b t_p)
+            | 2 -> List.iter (fun e -> applique b e Ramener t_p; if calcul_diff b.chemin < calcul_diff !sol then aux; defaire b t_p) (moovs b t_p)
+        done
+    in aux
 
 let txt_to_tab file : prise array= (*parcours le fichier contenant les coordonnées des prises pour en faire un prise array*)
     let f = open_in file in
@@ -65,14 +129,6 @@ let chemin_to_aretes_liste (c : int list option) (a : prise array) =
     match c with 
     |None -> failwith "pas de chemin possible"
     |Some l -> let f = open_out "click_detection/liste_aretes.txt" in aux l f; close_out f 
-
-let prises_depart_fin t_p =
-    let max, min = ref 0 in
-    for i = 0 to Array.length t_p - 1 do
-        if t_p.(i).x > t_p.(!max).x then !max = i
-        else if t_p.(i).x < t_p.(!min).x then !min = i
-    done;
-    !max, !min
 
 let main () =
     let t_p = txt_to_tab "click_detection/liste_prises.txt" in
