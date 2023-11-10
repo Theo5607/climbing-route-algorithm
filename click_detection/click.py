@@ -1,4 +1,6 @@
 import tkinter as tk
+import os
+import time
 
 # Fonction pour mettre à jour les coordonnées de la souris
 def update_mouse_coordinates(event):
@@ -61,14 +63,35 @@ def get_color_for_difficulty(difficulty):
         return "black"
 
 # Fonction appelée lors du clic sur le bouton "Terminer"
-def finish_button_click():
+def calcul_button_click():
     # exporte la liste des positions / diff
+    print(os.getcwd())
+    print("export")
     open('liste_prises.txt', 'w').close()
     file = open("liste_prises.txt", "a")
     for (px, py, diff) in positions:     
         file.write(str(px/100) + " " + str((400-py)/100) + " " + str(diff) + "\n")
 
+    print ("execution du ocaml")
+    print(os.getcwd())
+    os.chdir("..")
+    os.popen("_build/default/main.exe")
+    os.chdir("./click_detection")
+
     file.close()
+    print("import")
+    print(os.getcwd())
+    os.chdir("../click_detection")
+    time.sleep(1)
+    file = open("liste_aretes.txt", 'r')
+    for line in file:
+        x1, y1, x2, y2 = line.split(" ") 
+        aretes.append((100*float(x1), 400-100*float(y1), 100*float(x2), 400-100*float(y2)))
+        positions.append((100*float(x1), 400-100*float(y1), -1))
+        positions.append((100*float(x2), 400-100*float(y2), -1))
+    file.close()
+    redraw_canvas()
+
 
 def affiche_graphe():
     print("import")
@@ -123,12 +146,9 @@ button_frame.pack(side="left", padx=10)  # Utilisez "left" pour placer le conten
 
 
 # Bouton Exporter pour créer le fichier contenant les coordonnées des prises
-finish_button = tk.Button(button_frame, text="Exporter", command=finish_button_click)
-finish_button.pack()
+calcul_button = tk.Button(button_frame, text="calculer", command=calcul_button_click)
+calcul_button.pack()
 
-#Bouton importer pour recuperer et afficher le meilleur chemin
-affiche_button = tk.Button(button_frame, text="Importer", command=affiche_graphe)
-affiche_button.pack()
 
 # Bouton Supprimer pour supprimer la position sélectionnée
 delete_button = tk.Button(button_frame, text="Supprimer", command=delete_selected_position)
