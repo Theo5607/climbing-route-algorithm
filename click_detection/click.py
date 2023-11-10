@@ -65,24 +65,20 @@ def get_color_for_difficulty(difficulty):
 # Fonction appelée lors du clic sur le bouton "Terminer"
 def calcul_button_click():
     # exporte la liste des positions / diff
-    print(os.getcwd())
-    print("export")
+    print("exportation")
     open('liste_prises.txt', 'w').close()
     file = open("liste_prises.txt", "a")
     for (px, py, diff) in positions:     
         file.write(str(px/100) + " " + str((400-py)/100) + " " + str(diff) + "\n")
 
-    print ("execution du ocaml")
-    print(os.getcwd())
-    os.chdir("..")
-    os.popen("_build/default/main.exe")
-    os.chdir("./click_detection")
-
     file.close()
-    print("import")
-    print(os.getcwd())
-    os.chdir("../click_detection")
-    time.sleep(1)
+    print ("execution du ocaml")
+    os.chdir("..")
+    com = os.popen("_build/default/main.exe")
+    for l in com:
+        print(l)
+    os.chdir("./click_detection")
+    print("importation")
     file = open("liste_aretes.txt", 'r')
     for line in file:
         x1, y1, x2, y2 = line.split(" ") 
@@ -104,9 +100,13 @@ def affiche_graphe():
     file.close()
     redraw_canvas()
 
+def on_closing():
+    print("fermetab")  #detruire les .txt
+    root.destroy()
+
 # Créer une fenêtre principale
 root = tk.Tk()
-root.title("Détection de clics de souris")
+root.title("Climbing route ")
 
 # Créer une zone de dessin
 canvas = tk.Canvas(root, width=400, height=400, bg="white", relief="raised", bd=2)     #mur de 400x400cm
@@ -164,6 +164,8 @@ clear_button.pack()
 # Étiquette pour afficher les coordonnées de la souris
 mouse_coordinates_label = tk.Label(root, text="")
 mouse_coordinates_label.pack()
+
+root.protocol("WM_DELETE_WINDOW", on_closing)
 
 # Lancer la boucle principale
 root.mainloop()

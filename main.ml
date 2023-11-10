@@ -78,6 +78,8 @@ let main () =
     |Some d', Some f' ->
         chemin_to_aretes_liste (meilleur_chemin g d' f') t_p
 ;;
-main ()
+
+main ();
+print_string "Ocaml terminé";
 
 
