@@ -39,7 +39,7 @@ let moovs bloc t_p =
             | _ -> failwith "erreur"
         done;
     done;
-    !l
+    List.sort_uniq (Stdlib.compare) !l
 
 let complet bloc t_p =
     let f, d = prises_depart_fin t_p in
@@ -57,9 +57,12 @@ let applique bloc i e t_p =
 let calcul_diff chemin =
     let rec aux c diff =
         match c with
-        | [] -> failwith "erreur"
+        | [] -> failwith "erreur de chemin"
         | [x] -> diff
-        | t::q -> aux q (diff +. (Option.get (heuristique (fst (List.hd (List.tl q))) (fst (List.hd q)) (snd (List.hd (List.tl q))) (snd (List.hd q)) t_p)))
+        | t::q -> let x = heuristique (fst (List.hd q)) (fst t) (snd (List.hd q)) (snd t) t_p
+                  in match x with
+                  | None -> aux q diff
+                  | Some y -> aux q (diff +. y)
     in (aux chemin 0.)/.(float_of_int (List.length chemin))
 
 (*let init_graphe (t_p : prise array) : graphe =      (*initialise un graphe où seuls les sommets assez proches sont reliés et uniquement de bas en haut*)
@@ -77,17 +80,23 @@ let calcul_diff chemin =
 
 let chemin_optimal t_p =
     let sol = ref [] in
+    let diff = ref 1. in
     let f, d = prises_depart_fin t_p in
     let b = { state = Ramener; prise = d; chemin = [(d, Ramener)]; diff_min = 1. } in
-    let rec aux =
-        if complet b t_p && calcul_diff b.chemin < calcul_diff !sol then sol := b.chemin;
-        for i = 0 to 2 do
-            match i with
-            | 0 -> List.iter (fun e -> applique b e Droite t_p; if calcul_diff b.chemin < calcul_diff !sol then aux; defaire b t_p) (moovs b t_p)
-            | 1 -> List.iter (fun e -> applique b e Gauche t_p; if calcul_diff b.chemin < calcul_diff !sol then aux; defaire b t_p) (moovs b t_p)
-            | 2 -> List.iter (fun e -> applique b e Ramener t_p; if calcul_diff b.chemin < calcul_diff !sol then aux; defaire b t_p) (moovs b t_p)
-        done
-    in aux
+    let rec aux moov e =
+        applique b moov e t_p;
+        if calcul_diff b.chemin < !diff then
+            if complet b t_p && calcul_diff b.chemin < calcul_diff !sol then sol := b.chemin; diff := calcul_diff b.chemin;
+            for i = 0 to 2 do
+                match i with
+                | 0 -> List.iter (fun e -> aux e Droite) (moovs b t_p)
+                | 1 -> List.iter (fun e -> aux e Gauche) (moovs b t_p)
+                | 2 -> List.iter (fun e -> aux e Ramener) (moovs b t_p)
+                | _ -> failwith "erreur"
+            done;
+        if List.length b.chemin > 1 then
+            defaire b t_p;
+    in aux 0 Ramener; !sol
 
 let txt_to_tab file : prise array= (*parcours le fichier contenant les coordonnées des prises pour en faire un prise array*)
     let f = open_in file in
@@ -98,7 +107,7 @@ let txt_to_tab file : prise array= (*parcours le fichier contenant les coordonn�
           while true do
             incr i;
             match String.split_on_char ' ' (input_line f) with      
-            |[px; py; d; teta] -> l := {x = float_of_string px; y = float_of_string py; diff = float_of_string d; teta = teta}::(!l)
+            |[px; py; d; teta] -> l := {x = float_of_string px; y = float_of_string py; diff = float_of_string d; teta = float_of_string teta}::(!l)
             |_ -> ()
             
 
@@ -107,16 +116,6 @@ let txt_to_tab file : prise array= (*parcours le fichier contenant les coordonn�
         with End_of_file -> close_in f
     end;
     (Array.of_list !l)
-
-let meilleur_chemin (g : graphe)  (d : int) (f : int) : int list option = (*renvoie une liste option (à l'envers) des sommets à emprunter pour aller du sommet d à f*)
-    let _, pred = Dijkstra.dijkstra g d in 
-    let rec aux s =
-        if s = d then Some [s]
-        else
-            match pred.(s) with
-            |None -> None
-            |Some s' -> match aux s' with |None -> None | Some l -> Some (s::l)
-    in aux f
 
 
 let chemin_to_aretes_liste (c : int list option) (a : prise array) =
@@ -129,13 +128,5 @@ let chemin_to_aretes_liste (c : int list option) (a : prise array) =
     match c with 
     |None -> failwith "pas de chemin possible"
     |Some l -> let f = open_out "click_detection/liste_aretes.txt" in aux l f; close_out f 
-
-let main () =
-    let t_p = txt_to_tab "click_detection/liste_prises.txt" in
-    let f, d = prises_depart_fin t_p in
-    let g = init_graphe t_p in 
-    chemin_to_aretes_liste (meilleur_chemin g d f) t_p
-;;
-main ()
 
 
