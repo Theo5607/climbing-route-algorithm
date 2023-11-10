@@ -101,7 +101,8 @@ def affiche_graphe():
     redraw_canvas()
 
 def on_closing():
-    print("fermetab")  #detruire les .txt
+    os.remove("liste_prises.txt")
+    os.remove("liste_aretes.txt") #detruire les .txt
     root.destroy()
 
 # Créer une fenêtre principale
