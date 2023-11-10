@@ -54,6 +54,21 @@ let applique bloc i e t_p =
     bloc.state <- e;
     bloc.chemin <- (i, e)::(bloc.chemin)
 
+let print_state e =
+    match e with
+        | Droite -> print_string "Droite)"
+        | Gauche -> print_string "Gauche)"
+        | Ramener -> print_string "Ramener)"
+
+let affiche_chemin b =
+    print_char '[';
+    let rec aux l =
+        match l with
+        | [] -> ()
+        | [x] ->  print_char '('; print_int (fst x); print_char ','; print_state (snd x); print_string "]\n"
+        | t::q -> print_char '('; print_int (fst t); print_char ','; print_state (snd t); print_char ','; aux q
+    in aux b.chemin
+
 let calcul_diff chemin =
     let rec aux c diff =
         match c with
@@ -82,11 +97,12 @@ let chemin_optimal t_p =
     let sol = ref [] in
     let diff = ref 1. in
     let f, d = prises_depart_fin t_p in
-    let b = { state = Ramener; prise = d; chemin = [(d, Ramener)]; diff_min = 1. } in
+    let b = { state = Ramener; prise = d; chemin = []; diff_min = 1. } in
     let rec aux moov e =
+        affiche_chemin b;
         applique b moov e t_p;
         if calcul_diff b.chemin < !diff then
-            if complet b t_p && calcul_diff b.chemin < calcul_diff !sol then sol := b.chemin; diff := calcul_diff b.chemin;
+            if complet b t_p && calcul_diff b.chemin < !diff then sol := b.chemin; diff := calcul_diff b.chemin;
             for i = 0 to 2 do
                 match i with
                 | 0 -> List.iter (fun e -> aux e Droite) (moovs b t_p)
@@ -96,7 +112,7 @@ let chemin_optimal t_p =
             done;
         if List.length b.chemin > 1 then
             defaire b t_p;
-    in aux 0 Ramener; !sol
+    in aux d Ramener; !sol
 
 let txt_to_tab file : prise array= (*parcours le fichier contenant les coordonnées des prises pour en faire un prise array*)
     let f = open_in file in
