@@ -1,49 +1,53 @@
 type prise = { x : float; y : float; diff : float; teta : float }    (*les coordonnées sont exprimées en m, diff est un entier entre 1 et 5, teta un angle entre 0 et 359 représentant l'angle par rapport au sol de la prise.*)
 type graphe = (int*float) list array  (*array de liste d'adjacence avec des couples (voisin, poids) *)
 type etat = Droite | Gauche | Ramener
-type bloc = { mutable state : etat; mutable prise : int; mutable chemin : (int * etat) list; mutable diff_min : float }
+type bloc = { mutable state : etat; mutable prise : int; mutable chemin : (int * etat) list }
 
 
-let t_p = [|{x = 0.; y = 0.; diff = 1.; teta = 0.}; {x = 1.; y = 1.; diff = 1.; teta = 0.}; {x = 5.; y = 2.; diff = 1.; teta = 0.}; {x=0.; y=2.; diff = 1.; teta = 0.}; {x=1.; y=3.; diff = 1.; teta = 0.}|]
+let t_p = [|{x = 0.; y = 0.; diff = 1.; teta = 0.}; {x = 0.; y = 1.; diff = 2.; teta = 0.}; {x=0.; y=2.; diff = 3.; teta = 0.}; {x=0.; y=3.; diff = 4.; teta = 0.}; {x=1.; y=0.; diff = 5.; teta = 0.}|]
+
+let xor a b =
+    (a || b) && not (a && b);;
 
 let heuristique (i:int) (j:int) (e1:etat) (e2:etat) (t_p: prise array) : float option =   (*renvoie un float entre 0 et 1 correspondant à la difficulté d'un déplacement entre deux prises
                                                                             ou None si le mouvement est impossible *)
     let p1 = t_p.(i) and p2 = t_p.(j) in
     let p = sqrt ((p2.x -. p1.x) ** 2. +. (p2.y -. p1.y) ** 2.) in
-    if p < 1.7 (*&& p2.y > p1.y*)
-    && e1 != e2
-    then Some ((p /. 1.7) *. ((p2.teta -. p1.teta) /. 360.) *. ((p1.diff +. p2.diff) /. 10.)) else None
+    if p < 1.7 && p2.y >= p1.y
+    && ((e1 <> Ramener) || (e2 <> Ramener)) && e1 <> e2
+    then Some ((p /. 1.7) *. ((p1.diff +. p2.diff) /. 10.)) else None
 
 (*backtracking*)
 let prises_depart_fin t_p =
     let max, min = ref 0, ref 0 in
     for i = 0 to Array.length t_p - 1 do
-        if t_p.(i).x > t_p.(!max).x then max := i
-        else if t_p.(i).x < t_p.(!min).x then min := i
+        if t_p.(i).y > t_p.(!max).y then max := i
+        else if t_p.(i).y < t_p.(!min).y then min := i
     done;
     !max, !min
 
 let moov_poss bloc i e t_p =
     match heuristique bloc.prise i bloc.state e t_p with
-    | None -> false
-    | Some x -> if not (List.mem i (List.map (fun e -> fst e) bloc.chemin)) then true else false
+    | None -> []
+    | Some x when i <> bloc.prise -> if e <> Ramener && not (List.mem i (List.map (fun e -> fst e) bloc.chemin)) then [((i, e),x)] else []
+    | Some x when i = bloc.prise -> if e = Ramener && bloc.state <> Ramener then [((i, e),x)] else []
 
 let moovs bloc t_p =
     let l = ref [] in
     for i = 0 to Array.length t_p - 1 do
         for j = 0 to 2 do
             match j with
-            | 0 -> if moov_poss bloc i Droite t_p then l := i::(!l)
-            | 1 -> if moov_poss bloc i Gauche t_p then l := i::(!l)
-            | 2 -> if moov_poss bloc i Ramener t_p then l := i::(!l)
+            | 0 -> l := (moov_poss bloc i Droite t_p) @ !l
+            | 1 -> l := (moov_poss bloc i Gauche t_p) @ !l
+            | 2 -> l := (moov_poss bloc i Ramener t_p) @ !l
             | _ -> failwith "erreur"
         done;
     done;
-    List.sort_uniq (Stdlib.compare) !l
+    !l
 
 let complet bloc t_p =
     let f, d = prises_depart_fin t_p in
-    if bloc.prise = f then true else false
+    bloc.prise = f && bloc.state = Ramener
 
 let defaire bloc t_p =
     bloc.prise <- fst (List.hd (List.tl bloc.chemin));
@@ -60,14 +64,14 @@ let print_state e =
         | Gauche -> print_string "Gauche)"
         | Ramener -> print_string "Ramener)"
 
-let affiche_chemin b =
+let affiche_chemin c =
     print_char '[';
     let rec aux l =
         match l with
         | [] -> ()
         | [x] ->  print_char '('; print_int (fst x); print_char ','; print_state (snd x); print_string "]\n"
-        | t::q -> print_char '('; print_int (fst t); print_char ','; print_state (snd t); print_char ','; aux q
-    in aux b.chemin
+        | t::q -> print_char '('; print_int (fst t); print_char ','; print_state (snd t); print_char ';'; aux q
+    in aux c
 
 let calcul_diff chemin =
     let rec aux c diff =
@@ -95,24 +99,17 @@ let calcul_diff chemin =
 
 let chemin_optimal t_p =
     let sol = ref [] in
-    let diff = ref 1. in
+    let diff_min = ref 1000. in
     let f, d = prises_depart_fin t_p in
-    let b = { state = Ramener; prise = d; chemin = []; diff_min = 1. } in
-    let rec aux moov e =
-        affiche_chemin b;
-        applique b moov e t_p;
-        if calcul_diff b.chemin < !diff then
-            if complet b t_p && calcul_diff b.chemin < !diff then sol := b.chemin; diff := calcul_diff b.chemin;
-            for i = 0 to 2 do
-                match i with
-                | 0 -> List.iter (fun e -> aux e Droite) (moovs b t_p)
-                | 1 -> List.iter (fun e -> aux e Gauche) (moovs b t_p)
-                | 2 -> List.iter (fun e -> aux e Ramener) (moovs b t_p)
-                | _ -> failwith "erreur"
-            done;
+    let b = { state = Ramener; prise = d; chemin = [] } in
+    let rec aux moov diff =
+        applique b (fst moov) (snd moov) t_p;
+        if diff < !diff_min then
+            if complet b t_p then (sol := b.chemin; diff_min := diff);
+            List.iter (fun e -> aux (fst e) (diff +. (snd e))) (moovs b t_p);
         if List.length b.chemin > 1 then
             defaire b t_p;
-    in aux d Ramener; !sol
+    in aux (d, Ramener) 0.; !sol, (!diff_min)/.(float_of_int (List.length !sol))
 
 let txt_to_tab file : prise array= (*parcours le fichier contenant les coordonnées des prises pour en faire un prise array*)
     let f = open_in file in
