@@ -1,14 +1,15 @@
 type prise = { x : float; y : float; diff : float; teta : float }    (*les coordonnées sont exprimées en m, diff est un entier entre 1 et 5, teta un angle entre 0 et 359 représentant l'angle par rapport au sol de la prise.*)
-type graphe = (int*float) list array  (*array de liste d'adjacence avec des couples (voisin, poids) *)
 type etat = Droite | Gauche | Ramener
 type bloc = { mutable state : etat; mutable prise : int; mutable chemin : (int * etat) list }
 
-
+(*Liste de prises pour tester*)
 let t_p = [|{x = 0.; y = 0.; diff = 1.; teta = 0.}; {x = 0.; y = 1.; diff = 2.; teta = 0.}; {x=0.; y=2.; diff = 3.; teta = 0.}; {x=0.; y=3.; diff = 4.; teta = 0.}; {x=1.; y=0.; diff = 5.; teta = 0.}|]
 
-let xor a b =
-    (a || b) && not (a && b);;
-
+(*Fonction heuristique: renvoie un float option correspondant à la difficulté si le moov est possible, et None sinon
+Prend en compte les limitations suivantes:
+-La distance euclidienne entre la prise actuelle et la prochaine prise est < à 1.7m
+-On ne peut pas ramener la main si on déjà ramené au moov précédent
+-Les deux états sont différents : évite les relances*)
 let heuristique (i:int) (j:int) (e1:etat) (e2:etat) (t_p: prise array) : float option =   (*renvoie un float entre 0 et 1 correspondant à la difficulté d'un déplacement entre deux prises
                                                                             ou None si le mouvement est impossible *)
     let p1 = t_p.(i) and p2 = t_p.(j) in
@@ -17,8 +18,11 @@ let heuristique (i:int) (j:int) (e1:etat) (e2:etat) (t_p: prise array) : float o
     && ((e1 <> Ramener) || (e2 <> Ramener)) && e1 <> e2
     then Some ((p /. 1.7) *. ((p1.diff +. p2.diff) /. 10.)) else None
 
-(*backtracking*)
-let prises_depart_fin t_p =
+(*backtracking
+ *************)
+
+(*renvoie les prises de départ et de fin (pour l'instant les prises les plus basses et hautes respectivement)*)
+let prises_depart_fin (t_p: prise array) : int * int =
     let max, min = ref 0, ref 0 in
     for i = 0 to Array.length t_p - 1 do
         if t_p.(i).y > t_p.(!max).y then max := i
@@ -26,13 +30,15 @@ let prises_depart_fin t_p =
     done;
     !max, !min
 
-let moov_poss bloc i e t_p =
+(*renvoie une liste avec un seul élément, un tuple avec le moov et sa difficulté, si il est possible, une liste vide sinon*)
+let moov_poss bloc (i: int) (e: etat) (t_p: prise array) : ((int * etat) * float) list =
     match heuristique bloc.prise i bloc.state e t_p with
     | None -> []
     | Some x when i <> bloc.prise -> if e <> Ramener && not (List.mem i (List.map (fun e -> fst e) bloc.chemin)) then [((i, e),x)] else []
     | Some x when i = bloc.prise -> if e = Ramener && bloc.state <> Ramener then [((i, e),x)] else []
 
-let moovs bloc t_p =
+(*renvoie la liste des moovs possibles à partir de l'état d'un bloc*)
+let moovs (bloc: bloc) (t_p: prise array) : ((int * etat) * float) list =
     let l = ref [] in
     for i = 0 to Array.length t_p - 1 do
         for j = 0 to 2 do
@@ -45,26 +51,31 @@ let moovs bloc t_p =
     done;
     !l
 
-let complet bloc t_p =
+(*Renvoie true si le bloc est terminé, false sinon*)
+let complet bloc (t_p: prise array) : bool =
     let f, d = prises_depart_fin t_p in
     bloc.prise = f && bloc.state = Ramener
 
-let defaire bloc t_p =
+(*Permet d'annuler le dernier moov effectué*)
+let defaire bloc (t_p: prise array) : unit =
     bloc.prise <- fst (List.hd (List.tl bloc.chemin));
     bloc.chemin <- List.tl bloc.chemin
 
-let applique bloc i e t_p =
+(*Permet d'appliquer un moov à partir de l'état d'un bloc*)
+let applique bloc (i: int) (e: etat) (t_p: prise array) : unit =
     bloc.prise <- i;
     bloc.state <- e;
     bloc.chemin <- (i, e)::(bloc.chemin)
 
-let print_state e =
+(*Fonction pour afficher l'état d'un moov*)
+let print_state (e: etat) : unit =
     match e with
         | Droite -> print_string "Droite)"
         | Gauche -> print_string "Gauche)"
         | Ramener -> print_string "Ramener)"
 
-let affiche_chemin c =
+(*Fonction pour afficher une méthode*)
+let affiche_chemin (c: (int * etat) list) : unit =
     print_char '[';
     let rec aux l =
         match l with
@@ -73,31 +84,8 @@ let affiche_chemin c =
         | t::q -> print_char '('; print_int (fst t); print_char ','; print_state (snd t); print_char ';'; aux q
     in aux c
 
-let calcul_diff chemin =
-    let rec aux c diff =
-        match c with
-        | [] -> failwith "erreur de chemin"
-        | [x] -> diff
-        | t::q -> let x = heuristique (fst (List.hd q)) (fst t) (snd (List.hd q)) (snd t) t_p
-                  in match x with
-                  | None -> aux q diff
-                  | Some y -> aux q (diff +. y)
-    in (aux chemin 0.)/.(float_of_int (List.length chemin))
-
-(*let init_graphe (t_p : prise array) : graphe =      (*initialise un graphe où seuls les sommets assez proches sont reliés et uniquement de bas en haut*)
-    let g = Array.make (Array.length t_p) [] in
-    for i = 0 to Array.length g - 1 do
-        for j = 0 to Array.length g - 1 do
-            if i <> j then begin
-                match (heuristique i j t_p) with
-                | Some x -> g.(i) <- (j, x)::g.(i)
-                | None -> ()
-            end
-        done;
-    done;
-    g*)
-
-let chemin_optimal t_p =
+(*Fonction qui effectue le backtracking, renvoie un tuple avec le chemin sous forme de liste et la difficulté du bloc*)
+let chemin_optimal (t_p: prise array) : (int * etat) list * float =
     let sol = ref [] in
     let diff_min = ref 1000. in
     let f, d = prises_depart_fin t_p in
@@ -109,7 +97,7 @@ let chemin_optimal t_p =
             List.iter (fun e -> aux (fst e) (diff +. (snd e))) (moovs b t_p);
         if List.length b.chemin > 1 then
             defaire b t_p;
-    in aux (d, Ramener) 0.; !sol, (!diff_min)/.(float_of_int (List.length !sol))
+    in aux (d, Ramener) 0.; (List.rev !sol), (!diff_min)/.(float_of_int (List.length !sol))
 
 let txt_to_tab file : prise array= (*parcours le fichier contenant les coordonnées des prises pour en faire un prise array*)
     let f = open_in file in
