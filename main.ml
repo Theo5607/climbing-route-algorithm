@@ -124,5 +124,5 @@ let chemin_to_aretes_liste (c : (int * etat) list)  =
 ;;
 
 
-let t_p = txt_to_tab "mur1.txt" in
+let t_p = txt_to_tab "click_detection/liste_prises.txt" in
 chemin_to_aretes_liste (fst (chemin_optimal t_p));
