@@ -2,9 +2,6 @@ type prise = { x : float; y : float; diff : float; teta : float }    (*les coord
 type etat = Droite | Gauche | Ramener
 type bloc = { mutable state : etat; mutable prise : int; mutable chemin : (int * etat) list }
 
-(*Liste de prises pour tester*)
-let t_p = [|{x = 0.; y = 0.; diff = 1.; teta = 0.}; {x = 0.; y = 1.; diff = 2.; teta = 0.}; {x=0.; y=2.; diff = 3.; teta = 0.}; {x=0.; y=3.; diff = 4.; teta = 0.}; {x=1.; y=0.; diff = 5.; teta = 0.}|]
-
 (*Fonction heuristique: renvoie un float option correspondant à la difficulté si le moov est possible, et None sinon
 Prend en compte les limitations suivantes:
 -La distance euclidienne entre la prise actuelle et la prochaine prise est < à 1.7m
@@ -99,35 +96,33 @@ let chemin_optimal (t_p: prise array) : (int * etat) list * float =
             defaire b t_p;
     in aux (d, Ramener) 0.; (List.rev !sol), (!diff_min)/.(float_of_int (List.length !sol))
 
-let txt_to_tab file : prise array= (*parcours le fichier contenant les coordonnées des prises pour en faire un prise array*)
+let txt_to_tab file : prise array = (*parcours le fichier contenant les coordonnées des prises pour en faire un prise array*)
     let f = open_in file in
-    let l = ref [] in
-    let i = ref (-1) in
-    begin
-        try
-          while true do
-            incr i;
-            match String.split_on_char ' ' (input_line f) with      
-            |[px; py; d; teta] -> l := {x = float_of_string px; y = float_of_string py; diff = float_of_string d; teta = float_of_string teta}::(!l)
-            |_ -> ()
-            
+    let n = int_of_string (input_line f) in 
+    let t = Array.make n {x = 0.; y = 0.; diff = 0.; teta = 0.} in
+    for i=0 to n-1 do
+        match String.split_on_char ' ' (input_line f) with      
+        |[px; py; d; teta] -> (t.(i) <- {x = float_of_string px; y = float_of_string py; diff = float_of_string d; teta = float_of_string teta})
+        |_ -> ()
+    done;
+    t
 
 
-          done
-        with End_of_file -> close_in f
-    end;
-    (Array.of_list !l)
-
-
-let chemin_to_aretes_liste (c : int list option) (a : prise array) =
-    let rec aux l f=
+let chemin_to_aretes_liste (c : (int * etat) list)  =
+    let rec aux l main_d main_g f=
         match l with 
         |[] -> ()
-        |[_] -> ()
-        |i::j::q -> Printf.fprintf f "%f %f %f %f\n" a.(i).x a.(i).y a.(j).x a.(j).y; aux (j::q) f
-    in
-    match c with 
-    |None -> failwith "pas de chemin possible"
-    |Some l -> let f = open_out "click_detection/liste_aretes.txt" in aux l f; close_out f 
+        |(p, e)::q -> (
+            match e with 
+            |Gauche -> (Printf.fprintf f "g %d %d\n" main_g p; aux q main_d p f)
+            |Droite -> (Printf.fprintf f "d %d %d\n" main_d p; aux q p main_g f)
+            |Ramener -> (Printf.fprintf f "r %d %d\n" p p; aux q p p f)
+            )
+    in let f = open_out "click_detection/liste_aretes.txt" in aux c 0 0 f; close_out f 
 
 
+;;
+
+
+let t_p = txt_to_tab "mur1.txt" in
+chemin_to_aretes_liste (fst (chemin_optimal t_p));
