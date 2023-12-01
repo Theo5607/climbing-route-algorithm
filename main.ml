@@ -10,10 +10,10 @@ Prend en compte les limitations suivantes:
 let heuristique (i:int) (j:int) (e1:etat) (e2:etat) (t_p: prise array) : float option =   (*renvoie un float entre 0 et 1 correspondant à la difficulté d'un déplacement entre deux prises
                                                                             ou None si le mouvement est impossible *)
     let p1 = t_p.(i) and p2 = t_p.(j) in
-    let p = sqrt ((p2.x -. p1.x) ** 2. +. (p2.y -. p1.y) ** 2.) in
-    if p < 1.7 && p2.y >= p1.y
+    let d = sqrt ((p2.x -. p1.x) ** 2. +. (p2.y -. p1.y) ** 2.) in
+    if d < 1.7 && p2.y >= p1.y
     && ((e1 <> Ramener) || (e2 <> Ramener)) && e1 <> e2
-    then Some ((p /. 1.7) *. ((p1.diff +. p2.diff) /. 10.)) else None
+    then Some (2.*.d**5. *. (exp (p1.diff +. p2.diff) /. 5.)) else None
 
 (*backtracking
  *************)
@@ -101,11 +101,9 @@ let txt_to_tab file : prise array = (*parcours le fichier contenant les coordonn
     let n = int_of_string (input_line f) in 
     let t = Array.make n {x = 0.; y = 0.; diff = 0.; teta = 0.} in
     for i=0 to n-1 do
-        print_int i;
         match String.split_on_char ' ' (input_line f) with      
-            |[px; py; d; teta] -> (Printf.printf "%s\n" px; 
-                                   t.(i) <- {x = float_of_string px; y = float_of_string py; diff = float_of_string d; teta = float_of_string teta})
-            |_ -> (print_string "oups\n")
+            |[px; py; d; teta] -> (t.(i) <- {x = float_of_string px; y = float_of_string py; diff = float_of_string d; teta = float_of_string teta})
+            |_ -> ()
     done;
     t
 
