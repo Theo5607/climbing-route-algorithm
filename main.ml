@@ -101,9 +101,11 @@ let txt_to_tab file : prise array = (*parcours le fichier contenant les coordonn
     let n = int_of_string (input_line f) in 
     let t = Array.make n {x = 0.; y = 0.; diff = 0.; teta = 0.} in
     for i=0 to n-1 do
+        print_int i;
         match String.split_on_char ' ' (input_line f) with      
-        |[px; py; d; teta] -> (t.(i) <- {x = float_of_string px; y = float_of_string py; diff = float_of_string d; teta = float_of_string teta})
-        |_ -> ()
+            |[px; py; d; teta] -> (Printf.printf "%s\n" px; 
+                                   t.(i) <- {x = float_of_string px; y = float_of_string py; diff = float_of_string d; teta = float_of_string teta})
+            |_ -> (print_string "oups\n")
     done;
     t
 

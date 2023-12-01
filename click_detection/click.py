@@ -40,8 +40,8 @@ def redraw_canvas():
     for x, y, difficulty in positions:
         color = get_color_for_difficulty(difficulty)
         canvas.create_oval(x - 5, y - 5, x + 5, y + 5, fill=color)
-    for x1, y1, x2, y2 in aretes:
-        canvas.create_line(x1, y1, x2, y2, fill = "green", width = 5)
+    for p1, p2 in aretes:
+        canvas.create_line(positions[p1][0], positions[p1][1], positions[p2][0], positions[p2][1], fill = "green", width = 5)
 
 
 
@@ -65,19 +65,20 @@ def finish_button_click():
     # exporte la liste des positions / diff
     open('liste_prises.txt', 'w').close()
     file = open("liste_prises.txt", "a")
+    file.write(str(len(positions)) + "\n")
     for (px, py, diff) in positions:     
-        file.write(str(px/100) + " " + str((400-py)/100) + " " + str(diff) + " 0 \n")
+        file.write(str(px/100) + " " + str((400-py)/100) + " " + str(diff) + " 0\n")
 
     file.close()
 
 def affiche_graphe():
     print("import")
+    global aretes 
+    aretes = []
     file = open("liste_aretes.txt", 'r')
     for line in file:
-        x1, y1, x2, y2 = line.split(" ") 
-        aretes.append((100*float(x1), 400-100*float(y1), 100*float(x2), 400-100*float(y2)))
-        positions.append((100*float(x1), 400-100*float(y1), -1))
-        positions.append((100*float(x2), 400-100*float(y2), -1))
+        m, p1, p2 = line.split(" ")
+        aretes.append((int(p1), int(p2)))
     file.close()
     redraw_canvas()
 
