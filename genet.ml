@@ -24,5 +24,8 @@ let generer_pop (m:int) (n:int) : (prise array * float) array =
 	done;
 	pop
 
+let chemin_glouton (m : prise array) =
+	
+
 
 
