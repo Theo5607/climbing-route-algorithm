@@ -28,41 +28,37 @@ let prises_depart_fin (t_p: prise array) : int * int =
     !max, !min
 
 (*renvoie une liste avec un seul élément, un tuple avec le moov et sa difficulté, si il est possible, une liste vide sinon*)
-let moov_poss bloc (i: int) (e: etat) (t_p: prise array) : ((int * etat) * float) list =
+let moov_poss bloc (i: int) (e: etat) (t_p: prise array) : ((int * etat) * float) =
     match heuristique bloc.prise i bloc.state e t_p with
-    | None -> []
-    | Some x when i <> bloc.prise -> if e <> Ramener && not (List.mem i (List.map (fun e -> fst e) bloc.chemin)) then [((i, e),x)] else []
-    | Some x when i = bloc.prise -> if e = Ramener && bloc.state <> Ramener then [((i, e),x)] else []
+    | Some x when i <> bloc.prise
+      && e <> Ramener
+      && not (bloc.chemin |> List.map fst |> List.mem i) -> ((i, e),x)
+    | Some x when i = bloc.prise
+      && e = Ramener 
+      && bloc.state <> Ramener -> ((i, e), x)
+    | _ -> ((0, Ramener), 0.)
 
 (*renvoie la liste des moovs possibles à partir de l'état d'un bloc*)
 let moovs (bloc: bloc) (t_p: prise array) : ((int * etat) * float) list =
-    let l = ref [] in
-    for i = 0 to Array.length t_p - 1 do
-        for j = 0 to 2 do
-            match j with
-            | 0 -> l := (moov_poss bloc i Droite t_p) @ !l
-            | 1 -> l := (moov_poss bloc i Gauche t_p) @ !l
-            | 2 -> l := (moov_poss bloc i Ramener t_p) @ !l
-            | _ -> failwith "erreur"
-        done;
-    done;
-    !l
+    t_p |> Array.to_seq |> Seq.fold_lefti (fun l i e ->
+      Seq.cons (moov_poss bloc i Ramener t_p) l
+      |> Seq.cons (moov_poss bloc i Droite t_p)
+      |> Seq.cons (moov_poss bloc i Gauche t_p)) Seq.empty
+    |> Seq.filter (fun e -> e <> ((0, Ramener), 0.))
+    |> List.of_seq
 
 (*Renvoie true si le bloc est terminé, false sinon*)
 let complet bloc (t_p: prise array) : bool =
-    let f, d = prises_depart_fin t_p in
-    bloc.prise = f && bloc.state = Ramener
+    (prises_depart_fin t_p |> fst) = bloc.prise && bloc.state = Ramener
 
 (*Permet d'annuler le dernier moov effectué*)
 let defaire bloc (t_p: prise array) : unit =
-    bloc.prise <- fst (List.hd (List.tl bloc.chemin));
-    bloc.chemin <- List.tl bloc.chemin
+    bloc.prise <- bloc.chemin |> List.tl |> List.hd |> fst;
+    bloc.chemin <- bloc.chemin |> List.tl
 
 (*Permet d'appliquer un moov à partir de l'état d'un bloc*)
 let applique bloc (i: int) (e: etat) (t_p: prise array) : unit =
-    bloc.prise <- i;
-    bloc.state <- e;
-    bloc.chemin <- (i, e)::(bloc.chemin)
+    bloc.prise <- i; bloc.state <- e; bloc.chemin <- (i, e)::(bloc.chemin)
 
 (*Fonction pour afficher l'état d'un moov*)
 let print_state (e: etat) : unit =
