@@ -4,6 +4,8 @@ positions = []
 
 # Fonction pour redessiner tous les points sur la zone de dessin
 def redraw_canvas():
+    global positions
+    print(positions)
     canvas.delete("all")  # Efface tous les dessins sur la zone de dessin
     i = 0
     for x, y, difficulty, angle in positions:
@@ -21,7 +23,7 @@ def update_mouse_coordinates(event):
 # Fonction pour obtenir la couleur en fonction de la difficulté
 def get_color_for_difficulty(difficulty):
     if difficulty == 0 :
-        return "black"
+        return "yellow"
     elif difficulty == 1:
         return "purple"
     elif difficulty == 2:
@@ -30,18 +32,22 @@ def get_color_for_difficulty(difficulty):
         return "green"
     elif difficulty == 4:
         return "blue"
+    elif difficulty == 5:
+        return "yellow"
     else:
         return "black"
 
 
 def affiche_graphe():
+    global positions
+    positions = []
     file = open("mur.txt", 'r')
     n = int(file.readline())
     for i in range(0, n):
         line = file.readline()
         print(line)
-        x, y, diff, angle = line.split(" ") 
-        positions.append((100*float(x)+50, 400-100*float(y), diff, angle))
+        x, y, diff, angle = line[:-1].split(" ") 
+        positions.append((100*float(x), 400-100*float(y), diff, angle))
     file.close()
     redraw_canvas()
 
@@ -49,9 +55,9 @@ def affiche_graphe():
 root = tk.Tk()
 
 
-
 # Créer une zone de dessin
 canvas = tk.Canvas(root, width=400, height=400, bg="white", relief="raised", bd=2)     #mur de 400x400cm
+canvas["bg"] = "#d4a577"
 canvas.pack()
 
 canvas.bind("<Motion>", update_mouse_coordinates)

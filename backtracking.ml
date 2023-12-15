@@ -94,7 +94,7 @@ let chemin_optimal (t_p: prise array) : (int * etat) list * float =
             List.iter (fun e -> aux (fst e) (diff +. (snd e))) (moovs b t_p);
         if List.length b.chemin > 1 then
             defaire b t_p;
-    in aux (d, Ramener) 0.; (List.rev !sol), (!diff_min)/.(float_of_int (List.length !sol))
+    in aux (d, Ramener) 0.; (List.rev !sol), !diff_min
 
 let txt_to_tab file : prise array = (*parcours le fichier contenant les coordonnées des prises pour en faire un prise array*)
     let f = open_in file in
