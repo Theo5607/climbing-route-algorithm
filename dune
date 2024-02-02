@@ -1,6 +1,0 @@
-(executable
-    (name main))
-
-(env
-  (dev
-    (flags (:standard -w -32))))
