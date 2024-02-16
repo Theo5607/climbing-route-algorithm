@@ -34,6 +34,10 @@ let faisable p pos_tab m (x2, y2) =
   else 
     true
 
+let poids p pos_tab m (x2, y2) =
+  float_of_int (dist_prise p.(pos_tab.(m)) (x2,y2))
+
+
 
 let int_of_pos_tab n t =  (*renvoie l'entier representé en base n par t*)
   let k = ref 1 in
@@ -53,19 +57,52 @@ let pos_tab_of_int n pos = (*renvoie pos en base n avec le bit de poids faible �
   done;
   t
 
+
+let prises_mains_depart pb = (*renvoie les coordonnees des prises de depart et de fin du bloc*)
+  let l = pb |> member "moves" |> to_list in
+  let depart = ref [] in
+  List.iter(fun p -> 
+    if p |> member "isStart" |> to_bool then
+      depart := (p |> member "description" |> to_string |> id_to_coord)::!depart
+  ) l;
+  let d' = match !depart with
+    |[a] -> [a;a]
+    |[a;b] -> [a;b]
+    |_ -> failwith "prises de départ non comformes"
+  in d'
+
+let prises_mains_fin pb =
+  let l = pb |> member "moves" |> to_list in
+  let fin = ref [] in
+  List.iter(fun p -> 
+    if p |> member "isEnd" |> to_bool then
+      fin := (p |> member "description" |> to_string |> id_to_coord)::!fin
+  ) l;
+  let f' = match !fin with
+    |[a] -> [a;a]
+    |[a;b] -> [a;b]
+    |_ -> failwith "prises de fin non comformes"
+  in f'
+
+
 let emonde g = (*retire les voisins qui apparaissent plusieurs fois ainsi que les aretes s -> s *)
   let n = Array.length g in
   for x=0 to n-1 do 
     let vu = Array.make n false in
     vu.(x) <- true;
-    g.(x) <- List.filter (fun y -> if vu.(y) then false else (vu.(y) <- true; true)) g.(x)
+    g.(x) <- List.filter (fun (y,_) -> if vu.(y) then false else (vu.(y) <- true; true)) g.(x)
   done
 
 
-let creer_graphe (l : (int*int) list) = (*prend une liste de coordonnées de prises et renvoie le graph des positions dont les aretes sont les mouvements possibles*) 
-  let p = Array.of_list l in  (*array des prises du bloc*)
+let creer_graphe pb : (int * float) list array * (int * int) array = 
+  (*prend un probleme et renvoie le graph des positions dont les aretes sont les mouvements possibles*)
+  let l = liste_prises pb in
+  let [d1;d2] = prises_mains_depart pb in
+  let l' = ((fst d1 + fst d2) / 2, 0)::l in (*rajoute une prise de pieds pour le départ*)
 
-  let n = List.length l in
+  let p = Array.of_list l' in  (*array des prises du bloc*)
+
+  let n = List.length l' in
   let npow4 = n*n*n*n in  (*theoriquement il y a n⁴ positions possibles sur le mur en ayant tous les membres sur une des n prises*)
   let g = Array.make npow4 [] in   
   (*on represente chaque position par un array [md, mg, pd, pg] qui donne l'indice dans p de la prise sur laquelle chacun des 4 membres
@@ -76,9 +113,10 @@ let creer_graphe (l : (int*int) list) = (*prend une liste de coordonnées de pri
     for m=0 to 3 do           (*m = indice du membre déplacé*)
       for i=0 to n-1 do       (*i = indice de la nouvelle prise dans p*)
         if faisable p pos_tab m p.(i) then begin
+          let dist = poids p pos_tab m p.(i) in
           let v = pos_tab.(m) in
           pos_tab.(m) <- i;
-          g.(pos) <- (int_of_pos_tab n pos_tab)::g.(pos);      (*on ajoute au graphe une arete de pos à pos' ou pos` est la position apres avoir deplacé le membre m sur la i-eme prise *)
+          g.(pos) <- ((int_of_pos_tab n pos_tab), dist)::g.(pos);      (*on ajoute au graphe une arete de pos à pos' ou pos` est la position apres avoir deplacé le membre m sur la i-eme prise *)
           pos_tab.(m) <- v
         end
       done;
@@ -87,6 +125,18 @@ let creer_graphe (l : (int*int) list) = (*prend une liste de coordonnées de pri
   emonde g;
   g,p
 
-
+let pos_depart pb p n = (*renvoie l'int indiquant la position de depart*)
+  let [d1;d2] = prises_mains_depart pb |> List.sort (fun a b -> if fst a > fst b then 1 else -1) in
+  (*d1 : main gauche (x plus petit)  d2 : main droite*)
+  let p1 = ref (-1) in
+  let p2 = ref (-1) in  (*indice dans p de d1 et d2*)
+  Array.iteri (fun i c -> 
+  if c = d1 then
+    p1 := i
+  ;
+  if c = d2 then
+    p2 := i
+  ) p;
+  [|!p2; !p1; 0; 0|] |> int_of_pos_tab n
 
 
