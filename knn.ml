@@ -27,6 +27,18 @@ let calc_coords mv =
   let s = String.sub mv 1 (String.length mv - 1) in
   17 - (int_of_string s - 1), char_to_int mv.[0]
 
+let dist_manh p1 p2 =
+  let x1, y1 = p1 in
+  let x2, y2 = p2 in
+  abs(x2 - x1) + abs(y2 - y1)
+
+let comp_c1_cpl a b =
+  let x1, y1 = a in
+  let x2, y2 = b in
+  if x1 < x2 then -1
+  else if x1 > x2 then 1
+  else 0
+
 type bloc = { cote: string; diff_moy: float; dist_moy: float; nb_prises: int }
 
 let read_json filename =
@@ -42,25 +54,31 @@ let read_json filename =
   for i = 0 to total - 1 do
     let tab_moovs = member "moves" blocs.(i) |> to_list |> Array.of_list in
     let nb_prises = Array.length tab_moovs in
+    let coor_prises = ref [] in
+
     let diff_moy = ref 0. in
+
     for j = 0 to nb_prises - 1 do
       let mv = member "description" tab_moovs.(j) |> to_string in
       let c1, c2 = calc_coords mv in
+      coor_prises := (c1, c2) :: !coor_prises;
       diff_moy := !diff_moy +. t.(c1).(c2);
     done;
     diff_moy := !diff_moy /. (nb_prises |> float_of_int);
 
-    let dist_moy = 0. in
-    for j = 0 to nb_prises - 1 do
-      for k = 0 to nb_prises - 1 do
-        if i <> k then (
+    let rec aux l dists =
+      match l with
+      | [] -> dists
+      | [x] -> dists
+      | t::q -> (List.fold_left 
+        (fun acc e ->
+          let d = dist_manh t e in
+          if d > acc then d else acc) min_int q) :: dists 
+    in let dist_moy = (aux !coor_prises [] |> List.fold_left (fun acc e -> float_of_int e +. acc) 0.) /. (nb_prises |> float_of_int) in
 
-        )
-      done;
-    done;
-
-    Printf.printf "Difficulté: %s\nDifficulté moyenne: %.2f\nNombre de prises: %d\n---\n" (member "grade" blocs.(i) |> to_string) !diff_moy nb_prises
-  done;
+    Printf.printf 
+    "Difficulté: %s\nDifficulté moyenne: %.2f\nNombre de prises: %d\n---\n" (member "grade" blocs.(i) |> to_string) !diff_moy nb_prises
+  done
 
     
 
