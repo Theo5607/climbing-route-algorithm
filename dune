@@ -1,5 +1,7 @@
 (executable
-    (name main))
+    (name graphe)
+    (libraries raylib yojson)
+)
 
 (env
   (dev

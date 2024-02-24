@@ -31,3 +31,14 @@ let dijkstra (g: graphe) (s:int) =            (*renvoie un couple d * pred avec 
         
     done;
     d, pred
+
+let chemin pred x y = (*renvoie le chemin allant x à y *)
+    let rec aux s =
+        if x=s then
+            [s]
+        else
+            match pred.(s) with
+            |None -> failwith "pas de chemin"
+            |Some s' -> s::(aux s')
+    in
+    aux y

@@ -1,4 +1,3 @@
-open Yojson;;
 open Yojson.Basic.Util;;
 (* 
   taille du moonboard : 11x18 prises
@@ -25,9 +24,13 @@ let liste_prises pb : (int*int) list = (*renvoie la liste des coordonnees des pr
 let dist_prise (x1,y1) (x2,y2) =  (*renvoie la distance de manhattan de la prise 1 à la prise 2 *)
   (abs (x1 - x2)) + (abs (y1 - y2))
 
+let centre p pos_tab = 
+  ((Array.fold_left (fun acc i -> acc + fst p.(i)) 0 pos_tab) / 4) , ((Array.fold_left (fun acc i -> acc + snd p.(i)) 0 pos_tab) / 4) 
+
 
 let faisable p pos_tab m (x2, y2) =
-  dist_prise p.(pos_tab.(m)) (x2,y2) <= dmax &&       (*on verifie si la prise est atteignable *)
+  dist_prise (centre p pos_tab) (x2,y2) <= dmax &&       (*on verifie si la prise est atteignable *)
+  
   (snd p.(pos_tab.(m))) <= y2 &&                     (*on garde que les mouvements vers le haut ie y2 >= y1 *)
   if m=2 || m=3 then  (*si on bouge un pied*)
     y2 <= snd p.(pos_tab.(0)) && y2 <= snd p.(pos_tab.(1))   (*on interdit d'avoir les pieds plus haut que la tete *)
@@ -97,7 +100,11 @@ let emonde g = (*retire les voisins qui apparaissent plusieurs fois ainsi que le
 let creer_graphe pb : (int * float) list array * (int * int) array = 
   (*prend un probleme et renvoie le graph des positions dont les aretes sont les mouvements possibles*)
   let l = liste_prises pb in
-  let [d1;d2] = prises_mains_depart pb in
+  let d1,d2 = match prises_mains_depart pb with
+    |[u,v] -> u,v
+    |_ -> failwith "mauvais nombre de prises de depart" 
+
+  in
   let l' = ((fst d1 + fst d2) / 2, 0)::l in (*rajoute une prise de pieds pour le départ*)
 
   let p = Array.of_list l' in  (*array des prises du bloc*)
@@ -140,3 +147,40 @@ let pos_depart pb p n = (*renvoie l'int indiquant la position de depart*)
   [|!p2; !p1; 0; 0|] |> int_of_pos_tab n
 
 
+let find_best_end_pos pb p n dist =  (*renvoie la position de fin la plus proche trouvée depuis l'array des distances dist*)
+  let [f1;f2] = prises_mains_fin pb |> List.sort (fun a b -> if fst a > fst b then 1 else -1) in
+  (*f1 : main gauche (x plus petit)  f2 : main droite*)
+  let p1 = ref (-1) in
+  let p2 = ref (-1) in  (*indice dans p de d1 et d2*)
+  Array.iteri (fun i c -> 
+  if c = f1 then
+    p1 := i
+  ;
+  if c = f2 then
+    p2 := i
+  ) p;   (*trouve l'indice associé a ces prises*)
+  let i_min = ref 0 in
+  for i=0 to n*n*n*n - 1 do
+    if dist.(i) < dist.(!i_min) && i mod (n*n) = !p2 + n*(!p1) then begin(*test si les deux mains sont celles de fin*) 
+      i_min := i
+    end
+  done;
+  !i_min
+
+
+let liste_position pb = 
+  let g, p = creer_graphe pb in
+  let n = Array.length p in
+  let dep = pos_depart pb p n in
+  let dist, pred = Dijkstra.dijkstra g dep in
+  let fin = find_best_end_pos pb p n dist in
+  (Dijkstra.chemin pred dep fin) |> List.map (pos_tab_of_int n) |> List.rev
+
+
+let affiche_pb pb =
+  let p = Array.of_list (liste_prises pb) in
+  let liste_pos = Array.of_list (liste_position pb) in
+  Affiche.loop p liste_pos 
+;;
+
+affiche_pb (data |> to_list |> List.hd)
