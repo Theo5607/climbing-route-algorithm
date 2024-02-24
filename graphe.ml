@@ -68,9 +68,9 @@ let prises_mains_depart pb = (*renvoie les coordonnees des prises de depart et d
     if p |> member "isStart" |> to_bool then
       depart := (p |> member "description" |> to_string |> id_to_coord)::!depart
   ) l;
-  let d' = match !depart with
-    |[a] -> [a;a]
-    |[a;b] -> [a;b]
+  let d' = match List.sort (fun a b -> if fst a > fst b then 1 else -1) !depart with
+    |[a] -> (a,a)
+    |[a;b] -> (a,b)
     |_ -> failwith "prises de départ non comformes"
   in d'
 
@@ -81,9 +81,9 @@ let prises_mains_fin pb =
     if p |> member "isEnd" |> to_bool then
       fin := (p |> member "description" |> to_string |> id_to_coord)::!fin
   ) l;
-  let f' = match !fin with
-    |[a] -> [a;a]
-    |[a;b] -> [a;b]
+  let f' = match List.sort (fun a b -> if fst a > fst b then 1 else -1) !fin with
+    |[a] -> (a,a)
+    |[a;b] -> (a,b)
     |_ -> failwith "prises de fin non comformes"
   in f'
 
@@ -96,20 +96,18 @@ let emonde g = (*retire les voisins qui apparaissent plusieurs fois ainsi que le
     g.(x) <- List.filter (fun (y,_) -> if vu.(y) then false else (vu.(y) <- true; true)) g.(x)
   done
 
+let liste_prises_augmentee pb = (*rajoute une prise de pieds pour le départ*)
+  let l = liste_prises pb in
+  let d1,d2 = prises_mains_depart pb in
+  ((fst d1 + fst d2) / 2, 0)::l
+
 
 let creer_graphe pb : (int * float) list array * (int * int) array = 
   (*prend un probleme et renvoie le graph des positions dont les aretes sont les mouvements possibles*)
-  let l = liste_prises pb in
-  let d1,d2 = match prises_mains_depart pb with
-    |[u,v] -> u,v
-    |_ -> failwith "mauvais nombre de prises de depart" 
+  let l = liste_prises_augmentee pb in
+  let p = Array.of_list l in  (*array des prises du bloc*)
 
-  in
-  let l' = ((fst d1 + fst d2) / 2, 0)::l in (*rajoute une prise de pieds pour le départ*)
-
-  let p = Array.of_list l' in  (*array des prises du bloc*)
-
-  let n = List.length l' in
+  let n = List.length l in
   let npow4 = n*n*n*n in  (*theoriquement il y a n⁴ positions possibles sur le mur en ayant tous les membres sur une des n prises*)
   let g = Array.make npow4 [] in   
   (*on represente chaque position par un array [md, mg, pd, pg] qui donne l'indice dans p de la prise sur laquelle chacun des 4 membres
@@ -133,7 +131,7 @@ let creer_graphe pb : (int * float) list array * (int * int) array =
   g,p
 
 let pos_depart pb p n = (*renvoie l'int indiquant la position de depart*)
-  let [d1;d2] = prises_mains_depart pb |> List.sort (fun a b -> if fst a > fst b then 1 else -1) in
+  let d1,d2 = prises_mains_depart pb in
   (*d1 : main gauche (x plus petit)  d2 : main droite*)
   let p1 = ref (-1) in
   let p2 = ref (-1) in  (*indice dans p de d1 et d2*)
@@ -148,7 +146,7 @@ let pos_depart pb p n = (*renvoie l'int indiquant la position de depart*)
 
 
 let find_best_end_pos pb p n dist =  (*renvoie la position de fin la plus proche trouvée depuis l'array des distances dist*)
-  let [f1;f2] = prises_mains_fin pb |> List.sort (fun a b -> if fst a > fst b then 1 else -1) in
+  let f1,f2 = prises_mains_fin pb in
   (*f1 : main gauche (x plus petit)  f2 : main droite*)
   let p1 = ref (-1) in
   let p2 = ref (-1) in  (*indice dans p de d1 et d2*)
@@ -174,13 +172,12 @@ let liste_position pb =
   let dep = pos_depart pb p n in
   let dist, pred = Dijkstra.dijkstra g dep in
   let fin = find_best_end_pos pb p n dist in
-  (Dijkstra.chemin pred dep fin) |> List.map (pos_tab_of_int n) |> List.rev
+  ((Dijkstra.chemin pred dep fin) |> List.map (pos_tab_of_int n) |> List.rev),p
 
 
 let affiche_pb pb =
-  let p = Array.of_list (liste_prises pb) in
-  let liste_pos = Array.of_list (liste_position pb) in
-  Affiche.loop p liste_pos 
+  let liste_pos, p = liste_position pb in
+  Affiche.loop p (Array.of_list liste_pos) 
 ;;
 
 affiche_pb (data |> to_list |> List.hd)
