@@ -20,18 +20,22 @@ let t = [|[|2.5;0.6;7.2;4.4;4.7;3.8;8.1;1.9;7.2;1.9;7.5|];
 [|5.6;3.8;9.4;2.8;7.8;3.8;7.2;5.3;5.9;3.1;5.6|];
 [|3.4;4.4;8.1;5.0;7.8;4.1;6.9;6.3;6.6;6.6;2.5|]|]
 
+(*Renvoie l'entier correspondant à un caractère*)
 let char_to_int c =
   Char.code c - 65
 
+(*Transforme les coordonnées MoonBoard en coordonnées classiques*)
 let calc_coords mv =
   let s = String.sub mv 1 (String.length mv - 1) in
   17 - (int_of_string s - 1), char_to_int mv.[0]
 
+(*Calcule la distance de Manhatann entre deux couples*)
 let dist_manh p1 p2 =
   let x1, y1 = p1 in
   let x2, y2 = p2 in
   abs(x2 - x1) + abs(y2 - y1)
 
+(*Fonction de comparaison pour deux couples par rapport à leur première composante*)
 let comp_c1_cpl a b =
   let x1, y1 = a in
   let x2, y2 = b in
@@ -45,17 +49,24 @@ let read_json filename =
   let json = Yojson.Basic.from_file filename in
 
   let open Yojson.Basic.Util in
-
-  let total = json |> member "total" |> to_int in
-
-  let blocs = json |> member "data" |> to_list |> Array.of_list in
-  let tab_blocs = Array.make total { cote = ""; diff_moy = 0.; dist_moy = 0.; nb_prises = 0; } in
   
+  (*transforme le json en tableau de blocs*)
+  (*on ne garde que ceux avec + de 10 repeats*)
+  let blocs = json |> member "data" |> to_list |>
+    List.filter (fun e ->
+      member "repeats" e |> to_int >= 10) |> Array.of_list in
+
+  let total = Array.length blocs in
+
+  let tab_blocs = Array.make total { cote = ""; diff_moy = 0.; dist_moy = 0.; nb_prises = 0; } in
+    
+  (*boucle pour parcourir tout les blocs*)
   for i = 0 to total - 1 do
     let tab_moovs = member "moves" blocs.(i) |> to_list |> Array.of_list in
     let nb_prises = Array.length tab_moovs in
     let coor_prises = ref [] in
 
+    (*calcul de la difficulté moyenne*)
     let diff_moy = ref 0. in
 
     for j = 0 to nb_prises - 1 do
@@ -66,19 +77,17 @@ let read_json filename =
     done;
     diff_moy := !diff_moy /. (nb_prises |> float_of_int);
 
+    (*calcul de la distance moyenne*)
     let rec aux l dists =
       match l with
       | [] -> dists
       | [x] -> dists
-      | t::q -> (List.fold_left 
+      | t::q -> aux q ((List.fold_left 
         (fun acc e ->
           let d = dist_manh t e in
-          if d > acc then d else acc) min_int q) :: dists 
-    in let dist_moy = (aux !coor_prises [] |> List.fold_left (fun acc e -> float_of_int e +. acc) 0.) /. (nb_prises |> float_of_int) in
+          if d < acc then d else acc) max_int q) :: dists)
+    in let dist_moy = (aux (List.sort comp_c1_cpl !coor_prises) [] |> List.fold_left (fun acc e -> float_of_int e +. acc) 0.) /. (nb_prises |> float_of_int) in
 
     Printf.printf 
-    "Difficulté: %s\nDifficulté moyenne: %.2f\nNombre de prises: %d\n---\n" (member "grade" blocs.(i) |> to_string) !diff_moy nb_prises
+    "Difficulté: %s\nDifficulté moyenne: %.2f\nDistance moyenne: %.2f\nNombre de prises: %d\n---\n" (member "grade" blocs.(i) |> to_string) !diff_moy dist_moy nb_prises
   done
-
-    
-
