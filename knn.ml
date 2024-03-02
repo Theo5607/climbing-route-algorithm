@@ -115,7 +115,7 @@ let read_json filename =
   done;
   tab_blocs
 
-let tab_blocs = read_json "test.json"
+let tab_blocs = read_json "problems_tipe.json"
 
 (*---------------------*)
 (*algorithme K-NN*)
@@ -124,15 +124,20 @@ let tab_blocs = read_json "test.json"
 let distance b1 b2 tab =
   tab.(0) *. (b2.diff_moy -. b1.diff_moy) *. (b2.diff_moy -. b1.diff_moy) +.
   tab.(1) *. (b2.dist_moy -. b1.dist_moy) *. (b2.dist_moy -. b1.dist_moy) +.
-  tab.(3) *. (((b2.nb_prises - b1.nb_prises) * (b2.nb_prises - b1.nb_prises)) |> float_of_int)
+  tab.(2) *. (((b2.nb_prises - b1.nb_prises) * (b2.nb_prises - b1.nb_prises)) |> float_of_int)
 
-let knn k tab tab_blocs b =
+let knn k a tab_blocs b =
   let l = Array.to_list tab_blocs in
   let l_triee = List.sort (fun e1 e2 ->
-    if distance e1 b tab > distance e2 b tab then 1
-    else if distance e1 b tab < distance e2 b tab then -1
+    if distance e1 b a > distance e2 b a then 1
+    else if distance e1 b a < distance e2 b a then -1
     else 0) l in
   let tab = Array.make 14 0 in
   List.iteri (fun i e ->
-    if i <= k then tab.(e.cote) <- tab.(e.cote) + 1) (List.tl l_triee);
-  Array.fold_left max min_int tab
+    if i <= k then tab.(e.cote - 1) <- tab.(e.cote - 1) + 1) (List.tl l_triee);
+  let maxi = Array.fold_left max min_int tab in
+  let g = ref 0 in
+  for i = 0 to 13 do
+    if tab.(i) = maxi then g := i
+  done;
+  !g
