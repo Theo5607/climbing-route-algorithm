@@ -24,6 +24,27 @@ let t = [|[|2.5;0.6;7.2;4.4;4.7;3.8;8.1;1.9;7.2;1.9;7.5|];
 let char_to_int c =
   Char.code c - 65
 
+(*convertit une cotation en entier*)
+let garde_to_int g =
+  match g with
+  | "5+" -> 1
+  | "6A" -> 2
+  | "6A+" -> 3
+  | "6B" -> 4
+  | "6B+" -> 4
+  | "6C" -> 5
+  | "6C+" -> 5
+  | "7A" -> 6
+  | "7A+" -> 7
+  | "7B" -> 8
+  | "7B+" -> 8
+  | "7C" -> 9
+  | "7C+" -> 10
+  | "8A" -> 11
+  | "8A+" -> 12
+  | "8B" -> 13
+  | "8B+" -> 14
+
 (*Transforme les coordonnées MoonBoard en coordonnées classiques*)
 let calc_coords mv =
   let s = String.sub mv 1 (String.length mv - 1) in
@@ -43,7 +64,7 @@ let comp_c1_cpl a b =
   else if x1 > x2 then 1
   else 0
 
-type bloc = { cote: string; diff_moy: float; dist_moy: float; nb_prises: int }
+type bloc = { cote: int; diff_moy: float; dist_moy: float; nb_prises: int }
 
 let read_json filename =
   let json = Yojson.Basic.from_file filename in
@@ -58,7 +79,7 @@ let read_json filename =
 
   let total = Array.length blocs in
 
-  let tab_blocs = Array.make total { cote = ""; diff_moy = 0.; dist_moy = 0.; nb_prises = 0; } in
+  let tab_blocs = Array.make total { cote = 0; diff_moy = 0.; dist_moy = 0.; nb_prises = 0; } in
     
   (*boucle pour parcourir tout les blocs*)
   for i = 0 to total - 1 do
@@ -88,6 +109,30 @@ let read_json filename =
           if d < acc then d else acc) max_int q) :: dists)
     in let dist_moy = (aux (List.sort comp_c1_cpl !coor_prises) [] |> List.fold_left (fun acc e -> float_of_int e +. acc) 0.) /. (nb_prises |> float_of_int) in
 
-    Printf.printf 
-    "Difficulté: %s\nDifficulté moyenne: %.2f\nDistance moyenne: %.2f\nNombre de prises: %d\n---\n" (member "grade" blocs.(i) |> to_string) !diff_moy dist_moy nb_prises
-  done
+    (*Printf.printf 
+    "Difficulté: %s\nDifficulté moyenne: %.2f\nDistance moyenne: %.2f\nNombre de prises: %d\n---\n" (member "grade" blocs.(i) |> to_string) !diff_moy dist_moy nb_prises*)
+    tab_blocs.(i) <- { cote = (member "grade" blocs.(i) |> to_string |> garde_to_int); diff_moy = !diff_moy; dist_moy = dist_moy; nb_prises = nb_prises}
+  done;
+  tab_blocs
+
+let tab_blocs = read_json "test.json"
+
+(*---------------------*)
+(*algorithme K-NN*)
+
+(*distance entre deux blocs selon certains axes*)
+let distance b1 b2 tab =
+  tab.(0) *. (b2.diff_moy -. b1.diff_moy) *. (b2.diff_moy -. b1.diff_moy) +.
+  tab.(1) *. (b2.dist_moy -. b1.dist_moy) *. (b2.dist_moy -. b1.dist_moy) +.
+  tab.(3) *. (((b2.nb_prises - b1.nb_prises) * (b2.nb_prises - b1.nb_prises)) |> float_of_int)
+
+let knn k tab tab_blocs b =
+  let l = Array.to_list tab_blocs in
+  let l_triee = List.sort (fun e1 e2 ->
+    if distance e1 b tab > distance e2 b tab then 1
+    else if distance e1 b tab < distance e2 b tab then -1
+    else 0) l in
+  let tab = Array.make 14 0 in
+  List.iteri (fun i e ->
+    if i <= k then tab.(e.cote) <- tab.(e.cote) + 1) (List.tl l_triee);
+  Array.fold_left max min_int tab
