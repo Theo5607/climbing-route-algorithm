@@ -126,6 +126,7 @@ let distance b1 b2 tab =
   tab.(1) *. (b2.dist_moy -. b1.dist_moy) *. (b2.dist_moy -. b1.dist_moy) +.
   tab.(2) *. (((b2.nb_prises - b1.nb_prises) * (b2.nb_prises - b1.nb_prises)) |> float_of_int)
 
+(*Algorithe K-nn*)
 let knn k a tab_blocs b =
   let l = Array.to_list tab_blocs in
   let l_triee = List.sort (fun e1 e2 ->
@@ -141,3 +142,33 @@ let knn k a tab_blocs b =
     if tab.(i) = maxi then g := i
   done;
   !g
+
+(*Fonction swap*)
+let swap t i j =
+  let temp = t.(j) in
+  t.(j) <- t.(i);
+  t.(i) <- temp
+
+(*split les données pour la matrice de confusion de test*)
+let split tab_blocs p =
+  Random.self_init ();
+  let n = Array.length tab_blocs in
+  (*Mélange de Knuth*)
+  for i = 0 to Array.length tab_blocs - 1 do
+    let j = Random.int (i + 1) in
+    swap tab_blocs i j
+  done;
+  let nb = int_of_float ((float_of_int p) /. 100. *. (float_of_int n)) in
+  Array.init (nb - 1) (fun i -> tab_blocs.(i)), Array.init (n - nb) (fun i -> tab_blocs.(i))
+
+let confusion k tab_blocs p tab =
+  let t, d = split tab_blocs p in
+  let conf = Array.make_matrix 14 14 0 in
+  let rec aux l =
+    match l with
+    | [] -> conf
+    | t::q -> let i = t.cote - 1 in
+              let j = (knn k tab d t) in
+              conf.(i).(j) <- conf.(i).(j) + 1;
+              aux q
+  in aux (Array.to_list t)
