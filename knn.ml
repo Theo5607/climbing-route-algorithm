@@ -136,12 +136,18 @@ let knn k a tab_blocs b =
   let tab = Array.make 14 0 in
   List.iteri (fun i e ->
     if i <= k then tab.(e.cote - 1) <- tab.(e.cote - 1) + 1) (List.tl l_triee);
+  (*
   let maxi = Array.fold_left max min_int tab in
   let g = ref 0 in
   for i = 0 to 13 do
     if tab.(i) = maxi then g := i
   done;
-  !g
+  !g*)
+  let g = ref 0 in
+  for i = 0 to 13 do
+    g := !g + tab.(i) * (i + 1)
+  done;
+  ((float_of_int !g) /. (float_of_int k) |> int_of_float) - 1
 
 (*Fonction swap*)
 let swap t i j =
@@ -171,4 +177,9 @@ let confusion k tab_blocs p tab =
               let j = (knn k tab d t) in
               conf.(i).(j) <- conf.(i).(j) + 1;
               aux q
-  in aux (Array.to_list t)
+  in let mat_conf = aux (Array.to_list t) in
+  let reussi = ref 0 in
+  for i = 0 to 13 do
+    reussi := !reussi + mat_conf.(i).(i)
+  done;
+  print_float ((float_of_int !reussi) /. ((float_of_int (Array.length tab_blocs)) *. (float_of_int p) /. 100.))
