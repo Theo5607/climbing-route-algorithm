@@ -75,7 +75,8 @@ let read_json filename =
   (*on ne garde que ceux avec + de 10 repeats*)
   let blocs = json |> member "data" |> to_list |>
     List.filter (fun e ->
-      member "repeats" e |> to_int >= 10) |> Array.of_list in
+      member "repeats" e |> to_int >= 10
+      (*&& member "isBenchmark" e |> to_bool*)) |> Array.of_list in
 
   let total = Array.length blocs in
 
