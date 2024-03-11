@@ -183,4 +183,5 @@ let confusion k tab_blocs p tab =
   for i = 0 to 13 do
     reussi := !reussi + mat_conf.(i).(i)
   done;
-  print_float ((float_of_int !reussi) /. ((float_of_int (Array.length tab_blocs)) *. (float_of_int p) /. 100.))
+  print_float ((float_of_int !reussi) /. ((float_of_int (Array.length tab_blocs)) *. (float_of_int p) /. 100.));
+  mat_conf, t
