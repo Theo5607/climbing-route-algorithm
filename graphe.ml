@@ -4,9 +4,10 @@ open Yojson.Basic.Util;;
   version : 2017 25 
 
 *)
-let dmax = 5
+let dmax = 6.
 
-
+let iof = int_of_float;;
+let foi = float_of_int;;
 
 
 let json = Yojson.Basic.from_file "test.json";;
@@ -21,24 +22,28 @@ let liste_prises pb : (int*int) list = (*renvoie la liste des coordonnees des pr
   List.map (fun p -> p |> member "description" |> to_string |> id_to_coord) (pb |> member "moves" |> to_list)
 
 
-let dist_prise (x1,y1) (x2,y2) =  (*renvoie la distance de manhattan de la prise 1 à la prise 2 *)
-  (abs (x1 - x2)) + (abs (y1 - y2))
+let dist_prise (x1,y1) (x2,y2) =  (*renvoie la distance euclidienne de la prise 1 à la prise 2 *)
+  let d1 = (x1 - x2) |> abs |> foi in
+  let d2 = (y1 - y2) |> abs |> foi in
+  sqrt ((d1*.d1) +. (d2*.d2))
 
 let centre p pos_tab = 
   ((Array.fold_left (fun acc i -> acc + fst p.(i)) 0 pos_tab) / 4) , ((Array.fold_left (fun acc i -> acc + snd p.(i)) 0 pos_tab) / 4) 
 
 
 let faisable p pos_tab m (x2, y2) =
-  dist_prise (centre p pos_tab) (x2,y2) <= dmax &&       (*on verifie si la prise est atteignable *)
+
+  dist_prise (centre p pos_tab) (x2,y2) <= dmax  && (*on verifie si la prise est atteignable *)
+
+  (snd p.(pos_tab.(m))) <= y2 &&                     (*on garde que les mouvements vers le haut ie y2 >= y1 *)    
   
-  (snd p.(pos_tab.(m))) <= y2 &&                     (*on garde que les mouvements vers le haut ie y2 >= y1 *)
   if m=2 || m=3 then  (*si on bouge un pied*)
-    y2 <= snd p.(pos_tab.(0)) && y2 <= snd p.(pos_tab.(1))   (*on interdit d'avoir les pieds plus haut que la tete *)
+    y2 <= (snd p.(pos_tab.(0))) - 2 && y2 < (snd p.(pos_tab.(1))) - 2   (*on interdit d'avoir les pieds trop haut *)
   else 
     true
 
 let poids p pos_tab m (x2, y2) =
-  float_of_int (dist_prise p.(pos_tab.(m)) (x2,y2))
+  dist_prise p.(pos_tab.(m)) (x2,y2)
 
 
 
