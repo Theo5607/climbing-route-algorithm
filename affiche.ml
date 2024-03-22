@@ -20,12 +20,14 @@ let affiche_mur p =
 
 let affiche_pos p pos_tab =
 	let xm,ym = centre p pos_tab in
-	let m = Vector2.create (foi (xm*dx)) (foi ((18 - ym)*dy)) in
+	let mh = Vector2.create (foi (xm*dx)) (foi ((18 - ym - 1)*dy)) in
+	let mb = Vector2.create (foi (xm*dx)) (foi ((18 - ym + 1)*dy)) in
 
-	draw_line_ex m (Vector2.create (foi ((fst p.(pos_tab.(0)))*dx)) (foi ((18-(snd p.(pos_tab.(0))))*dy))) 4. Color.blue;
-	draw_line_ex m (Vector2.create (foi ((fst p.(pos_tab.(1)))*dx)) (foi ((18-(snd p.(pos_tab.(1))))*dy))) 4. Color.red;
-	draw_line_ex m (Vector2.create (foi ((fst p.(pos_tab.(2)))*dx)) (foi ((18-(snd p.(pos_tab.(2))))*dy))) 4. Color.black;
-	draw_line_ex m (Vector2.create (foi ((fst p.(pos_tab.(3)))*dx)) (foi ((18-(snd p.(pos_tab.(3))))*dy))) 4. Color.black
+	draw_line_ex mh (Vector2.create (foi ((fst p.(pos_tab.(0)))*dx)) (foi ((18-(snd p.(pos_tab.(0))))*dy))) 4. Color.blue;
+	draw_line_ex mh (Vector2.create (foi ((fst p.(pos_tab.(1)))*dx)) (foi ((18-(snd p.(pos_tab.(1))))*dy))) 4. Color.red;
+	draw_line_ex mb (Vector2.create (foi ((fst p.(pos_tab.(2)))*dx)) (foi ((18-(snd p.(pos_tab.(2))))*dy))) 4. Color.black;
+	draw_line_ex mb (Vector2.create (foi ((fst p.(pos_tab.(3)))*dx)) (foi ((18-(snd p.(pos_tab.(3))))*dy))) 4. Color.black;
+	draw_line_ex mb mh 4. Color.brown
 
 
 

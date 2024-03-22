@@ -4,14 +4,14 @@ open Yojson.Basic.Util;;
   version : 2017 25 
 
 *)
-let dmax = 6.
 
 let iof = int_of_float;;
 let foi = float_of_int;;
 
 
-let json = Yojson.Basic.from_file "test.json";;
-let data = json |> member "data";;
+
+
+
 
 let id_to_coord (s : string) : int*int =  (*renvoie les coordonnees de la prise ex : A4 -> (0,3)=(x,y) avec origine en bas a gauche *)
   (-65 + int_of_char s.[0]) , (String.sub s 1 (-1 + String.length s) |> int_of_string) - 1
@@ -33,7 +33,7 @@ let centre p pos_tab =
 
 let faisable p pos_tab m (x2, y2) =
 
-  dist_prise (centre p pos_tab) (x2,y2) <= dmax  && (*on verifie si la prise est atteignable *)
+  dist_prise (centre p pos_tab) (x2,y2) <= 6.  && (*on verifie si la prise est atteignable *)
 
   (snd p.(pos_tab.(m))) <= y2 &&                     (*on garde que les mouvements vers le haut ie y2 >= y1 *)    
   
@@ -42,8 +42,31 @@ let faisable p pos_tab m (x2, y2) =
   else 
     true
 
-let poids p pos_tab m (x2, y2) =
-  dist_prise p.(pos_tab.(m)) (x2,y2)
+
+
+let croise_score pos_tab m (x2,_) =   (*malus de 5 si on croise les mains*)
+  5. *. (
+  if (m = 0 && x2 < pos_tab.(1)) || (m = 1 && x2 > pos_tab.(0)) then
+    1.
+  else
+    0.
+  )
+
+let comfort_score p pos_tab m i =    (*garder les pieds loins des mains*)
+  let pos_tab' = Array.copy pos_tab in
+  pos_tab'.(m) <- i;
+  let yhm = (snd p.(pos_tab.(0))) + (snd p.(pos_tab.(1))) in
+  let ybm = (snd p.(pos_tab.(2))) + (snd p.(pos_tab.(3))) in
+  3. *. 
+  if abs (yhm - ybm) < 5 then 
+    1.
+  else
+    0.
+
+
+
+let poids p pos_tab m i =
+  (dist_prise p.(pos_tab.(m)) p.(i)) +. croise_score pos_tab m p.(i) +. comfort_score p pos_tab m i
 
 
 
@@ -123,7 +146,7 @@ let creer_graphe pb : (int * float) list array * (int * int) array =
     for m=0 to 3 do           (*m = indice du membre déplacé*)
       for i=0 to n-1 do       (*i = indice de la nouvelle prise dans p*)
         if faisable p pos_tab m p.(i) then begin
-          let dist = poids p pos_tab m p.(i) in
+          let dist = poids p pos_tab m i in
           let v = pos_tab.(m) in
           pos_tab.(m) <- i;
           g.(pos) <- ((int_of_pos_tab n pos_tab), dist)::g.(pos);      (*on ajoute au graphe une arete de pos à pos' ou pos` est la position apres avoir deplacé le membre m sur la i-eme prise *)
@@ -163,8 +186,11 @@ let find_best_end_pos pb p n dist =  (*renvoie la position de fin la plus proche
     p2 := i
   ) p;   (*trouve l'indice associé a ces prises*)
   let i_min = ref 0 in
-  for i=0 to n*n*n*n - 1 do
-    if dist.(i) < dist.(!i_min) && i mod (n*n) = !p2 + n*(!p1) then begin(*test si les deux mains sont celles de fin*) 
+  let n2 = n*n in
+  let n4 = n2*n2 in
+  for k=0 to (n4 - 1 - !p2 - n*(!p1)) / n2 do  (*i mod n² = p2 + n*p1*)
+    let i = !p2 + n*(!p1) + k * n2 in    (*toutes les pos où les mains sont sur les prises de fin*)
+    if dist.(i) < dist.(!i_min) then begin
       i_min := i
     end
   done;
@@ -185,4 +211,5 @@ let affiche_pb pb =
   Affiche.loop p (Array.of_list liste_pos) 
 ;;
 
-affiche_pb (data |> to_list |> List.hd)
+let json = Yojson.Basic.from_file "jak.json" in
+affiche_pb json
