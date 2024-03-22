@@ -74,9 +74,9 @@ let read_json filename =
   (*transforme le json en tableau de blocs*)
   (*on ne garde que ceux avec + de 10 repeats*)
   let blocs = json |> member "data" |> to_list |>
-    (*List.filter (fun e ->
+    List.filter (fun e ->
       member "repeats" e |> to_int >= 10
-      (*&& member "isBenchmark" e |> to_bool*))*) |> Array.of_list in
+      (*&& member "isBenchmark" e |> to_bool*)) |> Array.of_list in
 
   let total = Array.length blocs in
 
@@ -127,13 +127,23 @@ let distance b1 b2 tab =
   tab.(1) *. (b2.dist_moy -. b1.dist_moy) *. (b2.dist_moy -. b1.dist_moy) +.
   tab.(2) *. (((b2.nb_prises - b1.nb_prises) * (b2.nb_prises - b1.nb_prises)) |> float_of_int)
 
+(*renvoie une matrice avec les distances de chaque bloc deux à deux selon a*)
+let mat_distances a tab_blocs =
+  let n = Array.length tab_blocs in
+  let mat = Array.make_matrix n n 0. in
+  for i = 0 to ((n + 1) / 2) - 1 do
+    for j = 0 to ((n + 1) / 2) - 1 do
+      let d = distance tab_blocs.(i) tab_blocs.(j) a in
+      mat.(i).(j) <- d;
+      mat.(j).(i) <- d
+    done
+  done;
+  mat
+
 (*Algorithe K-nn*)
-let knn k a tab_blocs b =
-  let l = Array.to_list tab_blocs in
-  let l_triee = List.sort (fun e1 e2 ->
-    if distance e1 b a > distance e2 b a then 1
-    else if distance e1 b a < distance e2 b a then -1
-    else 0) l in
+let knn k mat_distances tab_blocs i =
+  let l = Array.to_list mat_distances.(i) in
+  let l_triee = List.sort Stdlib.compare l in 
   let tab = Array.make 14 0 in
   List.iteri (fun i e ->
     if i <= k then tab.(e.cote - 1) <- tab.(e.cote - 1) + 1) (List.tl l_triee);
@@ -160,28 +170,26 @@ let swap t i j =
 let split tab_blocs p =
   Random.self_init ();
   let n = Array.length tab_blocs in
+  let mat = Array.init n Fun.id in
   (*Mélange de Knuth*)
   for i = 0 to Array.length tab_blocs - 1 do
     let j = Random.int (i + 1) in
     swap tab_blocs i j
   done;
   let nb = int_of_float ((float_of_int p) /. 100. *. (float_of_int n)) in
-  Array.init (nb - 1) (fun i -> tab_blocs.(i)), Array.init (n - nb) (fun i -> tab_blocs.(i))
+  Array.init (nb - 1) (fun i -> mat.(i)), Array.init (n - nb) (fun i -> mat.(i))
 
-let confusion k tab_blocs p tab =
+let confusion k mat tab_blocs p tab =
   let t, d = split tab_blocs p in
   let conf = Array.make_matrix 14 14 0 in
-  let rec aux l =
-    match l with
-    | [] -> conf
-    | t::q -> let i = t.cote - 1 in
-              let j = (knn k tab d t) in
-              conf.(i).(j) <- conf.(i).(j) + 1;
-              aux q
-  in let mat_conf = aux (Array.to_list t) in
+  for k = 0 to Array.length t - 1 do
+    let i = tab_blocs.(k).cote - 1 in
+    let j = (knn k tab d k) in
+    conf.(i).(j) <- conf.(i).(j) + 1
+  done;
   let reussi = ref 0 in
   for i = 0 to 13 do
-    reussi := !reussi + mat_conf.(i).(i)
+    reussi := !reussi + conf.(i).(i)
   done;
   ((float_of_int !reussi) /. ((float_of_int (Array.length tab_blocs)) *. (float_of_int p) /. 100.))
 
