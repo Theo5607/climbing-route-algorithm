@@ -74,9 +74,9 @@ let read_json filename =
   (*transforme le json en tableau de blocs*)
   (*on ne garde que ceux avec + de 10 repeats*)
   let blocs = json |> member "data" |> to_list |>
-    List.filter (fun e ->
+    (*List.filter (fun e ->
       member "repeats" e |> to_int >= 10
-      (*&& member "isBenchmark" e |> to_bool*)) |> Array.of_list in
+      (*&& member "isBenchmark" e |> to_bool*))*) |> Array.of_list in
 
   let total = Array.length blocs in
 
@@ -183,5 +183,17 @@ let confusion k tab_blocs p tab =
   for i = 0 to 13 do
     reussi := !reussi + mat_conf.(i).(i)
   done;
-  print_float ((float_of_int !reussi) /. ((float_of_int (Array.length tab_blocs)) *. (float_of_int p) /. 100.));
-  mat_conf, t
+  ((float_of_int !reussi) /. ((float_of_int (Array.length tab_blocs)) *. (float_of_int p) /. 100.))
+
+let main =
+  let maxi = ref min_float in
+  let k_opti = ref 0 in
+  for i = 2 to 3 do
+    let moy = ref 0. in
+    for j = 0 to 29 do
+      moy := !moy +. (confusion i tab_blocs 10 [|1.;1.;1.|]);
+    done;
+    moy := !moy /. 30.;
+    if !moy > !maxi then (maxi := !moy; k_opti := i)
+  done;
+  !k_opti, !maxi
