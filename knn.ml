@@ -141,12 +141,14 @@ let mat_distances a tab_blocs =
   mat
 
 (*Algorithe K-nn*)
-let knn k mat_distances tab_blocs i =
-  let l = Array.to_list mat_distances.(i) in
-  let l_triee = List.sort Stdlib.compare l in 
+let knn (k:int) (mat_distances:float array array) (tab_blocs:bloc array) (i:int) =
+  let l_triee = List.sort (fun i j ->
+    if mat_distances.(i) > mat_distances.(j) then -1
+    else if mat_distances.(i) < mat_distances.(j) then 1
+    else 0) (List.init (Array.length tab_blocs) Fun.id) in 
   let tab = Array.make 14 0 in
   List.iteri (fun i e ->
-    if i <= k then tab.(e.cote - 1) <- tab.(e.cote - 1) + 1) (List.tl l_triee);
+    if i <= k then tab.(tab_blocs.(e).cote - 1) <- tab.(tab_blocs.(e).cote - 1) + 1) (List.tl l_triee);
   (*
   let maxi = Array.fold_left max min_int tab in
   let g = ref 0 in
@@ -167,7 +169,7 @@ let swap t i j =
   t.(i) <- temp
 
 (*split les données pour la matrice de confusion de test*)
-let split tab_blocs p =
+let split (tab_blocs: bloc array) (p: int) =
   Random.self_init ();
   let n = Array.length tab_blocs in
   let mat = Array.init n Fun.id in
@@ -179,12 +181,12 @@ let split tab_blocs p =
   let nb = int_of_float ((float_of_int p) /. 100. *. (float_of_int n)) in
   Array.init (nb - 1) (fun i -> mat.(i)), Array.init (n - nb) (fun i -> mat.(i))
 
-let confusion k mat tab_blocs p tab =
+let confusion (k:int) (mat:float array array) (tab_blocs:bloc array) (p:int) =
   let t, d = split tab_blocs p in
   let conf = Array.make_matrix 14 14 0 in
-  for k = 0 to Array.length t - 1 do
-    let i = tab_blocs.(k).cote - 1 in
-    let j = (knn k tab d k) in
+  for m = 0 to Array.length t - 1 do
+    let i = tab_blocs.(m).cote - 1 in
+    let j = (knn k mat d p) in
     conf.(i).(j) <- conf.(i).(j) + 1
   done;
   let reussi = ref 0 in
@@ -196,12 +198,16 @@ let confusion k mat tab_blocs p tab =
 let main =
   let maxi = ref min_float in
   let k_opti = ref 0 in
+  let mat = mat_distances [|1.;1.;1.|] tab_blocs in
   for i = 2 to 3 do
     let moy = ref 0. in
     for j = 0 to 29 do
-      moy := !moy +. (confusion i tab_blocs 10 [|1.;1.;1.|]);
+      moy := !moy +. (confusion i mat tab_blocs 10 [|1.;1.;1.|]);
     done;
     moy := !moy /. 30.;
     if !moy > !maxi then (maxi := !moy; k_opti := i)
   done;
-  !k_opti, !maxi
+  (*!k_opti, !maxi*)
+  print_int !k_opti;
+  print_char '\n';
+  print_int !maxi
