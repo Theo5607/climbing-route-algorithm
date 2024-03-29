@@ -9,7 +9,26 @@ let iof = int_of_float;;
 let foi = float_of_int;;
 
 
-
+let diff_tab = [|
+[|2.5;0.6;7.2;4.4;4.7;3.8;8.1;1.9;7.2;1.9;7.5|];
+[|7.8;9.4;8.1;5.3;8.1;5.0;4.7;6.3;10.0;9.4;4.7|];
+[|3.4;10.0;0.3;6.6;4.7;8.8;6.3;7.5;5.3;1.3;7.5|];
+[|7.2;6.6;8.8;4.1;7.8;7.5;7.8;6.9;9.4;7.2;1.3|];
+[|2.8;9.1;2.2;9.4;4.4;7.2;5.6;5.9;6.9;8.8;7.5|];
+[|8.1;3.4;3.8;7.8;1.3;5.6;2.5;7.8;4.4;4.1;2.2|];
+[|5.3;5.9;6.6;5.9;6.6;3.4;6.6;8.4;6.3;7.5;8.8|];
+[|3.1;9.4;6.6;6.6;4.4;8.8;3.1;5.6;6.9;1.9;4.4|];
+[|5.9;6.3;3.4;1.9;8.8;7.2;3.8;3.1;6.3;8.8;5.6|];
+[|8.1;5.9;6.9;2.8;6.9;5.0;7.5;6.3;6.9;2.5;6.3|];
+[|4.1;4.4;9.4;7.2;4.4;2.5;4.1;5.0;1.3;6.9;8.1|];
+[|7.2;6.9;5.0;7.5;6.3;4.7;1.9;6.9;1.3;6.3;7.5|];
+[|2.5;7.5;6.6;6.6;5.0;5.0;4.1;8.1;6.3;6.9;6.9|];
+[|0.6;8.1;9.4;3.8;7.5;3.1;7.2;2.5;6.9;8.1;4.4|];
+[|2.2;4.4;3.4;2.5;5.0;5.6;4.4;5.0;6.3;4.4;5.6|];
+[|4.1;3.8;9.4;7.5;3.1;8.1;6.9;7.2;6.6;6.6;7.8|];
+[|5.6;3.8;9.4;2.8;7.8;3.8;7.2;5.3;5.9;3.1;5.6|];
+[|3.4;4.4;8.1;5.0;7.8;4.1;6.9;6.3;6.6;6.6;2.5|]|]
+;;
 
 
 
@@ -27,11 +46,15 @@ let dist_prise (x1,y1) (x2,y2) =  (*renvoie la distance euclidienne de la prise 
   let d2 = (y1 - y2) |> abs |> foi in
   sqrt ((d1*.d1) +. (d2*.d2))
 
-let centre p pos_tab = 
+let dist_score (x1,y1) (x2,y2) =   (*renvoie un score entre 0 et 1 de combien l'ecart entre les 2 prises est proche d'un déplacement habituel*)
+  let delta = (dist_prise (x1,y1) (x2,y2)) -. 4. in
+  Float.exp ( (-1.)*.delta*.delta)
+
+let centre p pos_tab : int*int = (*renvoie la pos moyenne des 4 prises tenues*)
   ((Array.fold_left (fun acc i -> acc + fst p.(i)) 0 pos_tab) / 4) , ((Array.fold_left (fun acc i -> acc + snd p.(i)) 0 pos_tab) / 4) 
 
 
-let faisable p pos_tab m (x2, y2) =
+let faisable p pos_tab m (x2, y2) = (*bool si le move n'est pas aberant*)
 
   dist_prise (centre p pos_tab) (x2,y2) <= 6.  && (*on verifie si la prise est atteignable *)
 
@@ -44,29 +67,31 @@ let faisable p pos_tab m (x2, y2) =
 
 
 
-let croise_score pos_tab m (x2,_) =   (*malus de 5 si on croise les mains*)
-  5. *. (
-  if (m = 0 && x2 < pos_tab.(1)) || (m = 1 && x2 > pos_tab.(0)) then
+let croise_score pos_tab m (x2,_) =   (*malus si on croise les mains*)
+  if (m = 0 && x2 < pos_tab.(1)) || (m = 1 && x2 > pos_tab.(0)) || (m = 2 && x2 < pos_tab.(3)) || (m = 3 && x2 > pos_tab.(2)) then
     1.
   else
     0.
-  )
+  
 
 let comfort_score p pos_tab m i =    (*garder les pieds loins des mains*)
   let pos_tab' = Array.copy pos_tab in
   pos_tab'.(m) <- i;
   let yhm = (snd p.(pos_tab.(0))) + (snd p.(pos_tab.(1))) in
   let ybm = (snd p.(pos_tab.(2))) + (snd p.(pos_tab.(3))) in
-  3. *. 
-  if abs (yhm - ybm) < 5 then 
-    1.
-  else
-    0.
+  let delta = foi ( (abs (yhm - ybm)) - 8) in
+  Float.exp ( (-1.)*.delta*.delta)
 
+let prise_score m (x,y) = 
+  let diff = diff_tab.(18 - y -1).(x) /. 10. in
+  if m = 0 || m = 1 then 
+    diff
+  else
+    0.5 *. diff
 
 
 let poids p pos_tab m i =
-  (dist_prise p.(pos_tab.(m)) p.(i)) +. croise_score pos_tab m p.(i) +. comfort_score p pos_tab m i
+  0.1 *. (dist_prise p.(pos_tab.(m)) p.(i)) +. 0.4 *. (croise_score pos_tab m p.(i)) +. 0.3 *. (comfort_score p pos_tab m i) +. 0.3 *. (prise_score m p.(i)) 
 
 
 
