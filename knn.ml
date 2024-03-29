@@ -128,37 +128,40 @@ let distance b1 b2 tab =
   tab.(2) *. (((b2.nb_prises - b1.nb_prises) * (b2.nb_prises - b1.nb_prises)) |> float_of_int)
 
 (*renvoie une matrice avec les distances de chaque bloc deux à deux selon a*)
-let mat_distances a tab_blocs =
-  let n = Array.length tab_blocs in
+let mat_distances a train =
+  let n = Array.length train in
   let mat = Array.make_matrix n n 0. in
-  for i = 0 to ((n + 1) / 2) - 1 do
-    for j = 0 to ((n + 1) / 2) - 1 do
-      let d = distance tab_blocs.(i) tab_blocs.(j) a in
+  for i = 0 to n - 1 do
+    for j = 0 to n - 1 do
+      let d = distance train.(i) train.(j) a in
       mat.(i).(j) <- d;
       mat.(j).(i) <- d
     done
   done;
   mat
 
+(*Matrice des distances*)
+let mat_dist = mat_distances [|1.;1.;1.|] tab_blocs
+
 (*Algorithe K-nn*)
-let knn (k:int) (mat_distances:float array array) (tab_blocs:bloc array) (i:int) =
-  let l_triee = List.sort (fun i j ->
-    if mat_distances.(i) > mat_distances.(j) then -1
-    else if mat_distances.(i) < mat_distances.(j) then 1
-    else 0) (List.init (Array.length tab_blocs) Fun.id) in 
+let knn (k:int) (mat_distances:float array array) (train:bloc array) (i:int) =
+  let l_triee = List.sort (fun n m ->
+    if mat_distances.(i).(n) > mat_distances.(i).(m) then 1
+    else if mat_distances.(i).(n) < mat_distances.(i).(m) then -1
+    else 0) (List.init (Array.length train) Fun.id) in 
   let tab = Array.make 14 0 in
-  List.iteri (fun i e ->
-    if i <= k then tab.(tab_blocs.(e).cote - 1) <- tab.(tab_blocs.(e).cote - 1) + 1) (List.tl l_triee);
-  (*
-  let maxi = Array.fold_left max min_int tab in
+  List.iteri (fun m e ->
+    if m <= k then tab.(train.(e).cote - 1) <- tab.(train.(e).cote - 1) + 1) (List.tl l_triee);
+  
+  (*let maxi = Array.fold_left max min_int tab in
   let g = ref 0 in
   for i = 0 to 13 do
     if tab.(i) = maxi then g := i
   done;
   !g*)
   let g = ref 0 in
-  for i = 0 to 13 do
-    g := !g + tab.(i) * (i + 1)
+  for m = 0 to 13 do
+    g := !g + tab.(m) * (m + 1)
   done;
   ((float_of_int !g) /. (float_of_int k) |> int_of_float) - 1
 
@@ -169,40 +172,39 @@ let swap t i j =
   t.(i) <- temp
 
 (*split les données pour la matrice de confusion de test*)
-let split (tab_blocs: bloc array) (p: int) =
+let split (train: bloc array) (p: int) : bloc array * bloc array =
   Random.self_init ();
-  let n = Array.length tab_blocs in
-  let mat = Array.init n Fun.id in
+  let n = Array.length train in
   (*Mélange de Knuth*)
-  for i = 0 to Array.length tab_blocs - 1 do
+  for i = 0 to Array.length train - 1 do
     let j = Random.int (i + 1) in
-    swap tab_blocs i j
+    swap train i j
   done;
   let nb = int_of_float ((float_of_int p) /. 100. *. (float_of_int n)) in
-  Array.init (nb - 1) (fun i -> mat.(i)), Array.init (n - nb) (fun i -> mat.(i))
+  Array.init (nb - 1) (fun i -> train.(i)), Array.init (n - nb) (fun i -> train.(i))
 
-let confusion (k:int) (mat:float array array) (tab_blocs:bloc array) (p:int) =
-  let t, d = split tab_blocs p in
+let confusion (k:int) (mat:float array array) (train:bloc array) (p:int) =
+  let t, d = split train p in
   let conf = Array.make_matrix 14 14 0 in
   for m = 0 to Array.length t - 1 do
-    let i = tab_blocs.(m).cote - 1 in
-    let j = (knn k mat d p) in
+    let i = train.(m).cote - 1 in
+    let j = (knn k mat d m) in
     conf.(i).(j) <- conf.(i).(j) + 1
   done;
   let reussi = ref 0 in
   for i = 0 to 13 do
     reussi := !reussi + conf.(i).(i)
   done;
-  ((float_of_int !reussi) /. ((float_of_int (Array.length tab_blocs)) *. (float_of_int p) /. 100.))
+  conf, ((float_of_int !reussi) /. ((float_of_int (Array.length train)) *. (float_of_int p) /. 100.))
 
-let main =
+(*let main =
   let maxi = ref min_float in
   let k_opti = ref 0 in
   let mat = mat_distances [|1.;1.;1.|] tab_blocs in
   for i = 2 to 3 do
     let moy = ref 0. in
     for j = 0 to 29 do
-      moy := !moy +. (confusion i mat tab_blocs 10 [|1.;1.;1.|]);
+      moy := !moy +. (confusion i mat tab_blocs 10);
     done;
     moy := !moy /. 30.;
     if !moy > !maxi then (maxi := !moy; k_opti := i)
@@ -210,4 +212,4 @@ let main =
   (*!k_opti, !maxi*)
   print_int !k_opti;
   print_char '\n';
-  print_int !maxi
+  print_float !maxi*)
