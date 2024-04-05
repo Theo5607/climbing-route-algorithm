@@ -1,7 +1,7 @@
 open Raylib
 
-let w = 550;;
-let h = 600;;
+let w = 430;;
+let h = 700;;
 
 let dx = w / 11;;
 let dy = h / 18;;
@@ -16,6 +16,14 @@ let centre p pos_tab =
 
 let affiche_mur p =
 	clear_background Color.raywhite;
+	for i=0 to 11 do
+		draw_line (i*dx) 0 (i*dx) h Color.gray;
+	done;
+	for j=0 to 18 do
+		draw_line 0 (j*dy) w (j*dy) Color.gray;
+	done;
+	draw_rectangle_lines (10*dx) (17*dy) dx dy Color.gray;
+	draw_text "20cm" (10*dx) (17*dy) 1 Color.gray;
 	Array.iter (fun (x,y) -> draw_circle (x*dx) ((18-y)*dy) 10. Color.orange) p
 
 let affiche_pos p pos_tab =
@@ -23,11 +31,11 @@ let affiche_pos p pos_tab =
 	let mh = Vector2.create (foi (xm*dx)) (foi ((18 - ym - 1)*dy)) in
 	let mb = Vector2.create (foi (xm*dx)) (foi ((18 - ym + 1)*dy)) in
 
+	draw_line_ex mb mh 4. Color.brown;
 	draw_line_ex mh (Vector2.create (foi ((fst p.(pos_tab.(0)))*dx)) (foi ((18-(snd p.(pos_tab.(0))))*dy))) 4. Color.blue;
 	draw_line_ex mh (Vector2.create (foi ((fst p.(pos_tab.(1)))*dx)) (foi ((18-(snd p.(pos_tab.(1))))*dy))) 4. Color.red;
 	draw_line_ex mb (Vector2.create (foi ((fst p.(pos_tab.(2)))*dx)) (foi ((18-(snd p.(pos_tab.(2))))*dy))) 4. Color.black;
-	draw_line_ex mb (Vector2.create (foi ((fst p.(pos_tab.(3)))*dx)) (foi ((18-(snd p.(pos_tab.(3))))*dy))) 4. Color.black;
-	draw_line_ex mb mh 4. Color.brown
+	draw_line_ex mb (Vector2.create (foi ((fst p.(pos_tab.(3)))*dx)) (foi ((18-(snd p.(pos_tab.(3))))*dy))) 4. Color.black
 
 
 
