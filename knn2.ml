@@ -58,8 +58,8 @@ let dist_manh p1 p2 =
 
 (*Fonction de comparaison pour deux couples par rapport à leur première composante*)
 let comp_c1_cpl a b =
-  let x1, y1 = a in
-  let x2, y2 = b in
+  let x1 = fst a in
+  let x2 = snd b in
   if x1 < x2 then -1
   else if x1 > x2 then 1
   else 0
@@ -102,12 +102,11 @@ let read_json filename =
     (*calcul de la distance moyenne*)
     let rec aux l dists =
       match l with
-      | [] -> dists
-      | [x] -> dists
       | t::q -> aux q ((List.fold_left 
         (fun acc e ->
           let d = dist_manh t e in
           if d < acc then d else acc) max_int q) :: dists)
+      | _ -> dists
     in let dist_moy = (aux (List.sort comp_c1_cpl !coor_prises) [] |> List.fold_left (fun acc e -> float_of_int e +. acc) 0.) /. (nb_prises |> float_of_int) in
 
     (*Printf.printf 
@@ -135,7 +134,7 @@ let mat_distances a train =
     for j = 0 to n - 1 do
       let d = distance train.(i) train.(j) a in
       mat.(i).(j) <- d;
-      mat.(j).(i) <- d
+      mat.(j).(i) <- d;
     done
   done;
   mat
@@ -143,27 +142,30 @@ let mat_distances a train =
 (*Matrice des distances*)
 let mat_dist = mat_distances [|1.;1.;1.|] tab_blocs
 
+
 (*Algorithe K-nn*)
-let knn (k:int) (mat_distances:float array array) (train:bloc array) (i:int) =
+let knn k tab_blocs i =
   let l_triee = List.sort (fun n m ->
-    if mat_distances.(i).(n) > mat_distances.(i).(m) then 1
-    else if mat_distances.(i).(n) < mat_distances.(i).(m) then -1
-    else 0) (List.init (Array.length train) Fun.id) in 
+    if mat_dist.(i).(fst n) > mat_dist.(i).(fst m) then 1
+    else if mat_dist.(i).(fst n) < mat_dist.(i).(fst m) then -1
+    else 0) (List.init (Array.length tab_blocs) (fun j -> (j, tab_blocs.(j)))) in
   let tab = Array.make 14 0 in
-  List.iteri (fun m e ->
-    if m <= k then tab.(train.(e).cote - 1) <- tab.(train.(e).cote - 1) + 1) (List.tl l_triee);
+  List.iteri (fun j e ->
+    if j <= k then tab.(tab_blocs.(fst e).cote - 1) <- tab.(tab_blocs.(fst e).cote - 1) + 1) (List.tl l_triee);
   
-  (*let maxi = Array.fold_left max min_int tab in
+  let maxi = Array.fold_left max min_int tab in
   let g = ref 0 in
   for i = 0 to 13 do
     if tab.(i) = maxi then g := i
   done;
-  !g*)
+  !g
+  (*
   let g = ref 0 in
-  for m = 0 to 13 do
-    g := !g + tab.(m) * (m + 1)
+  for j = 0 to 13 do
+    g := !g + tab.(j) * (j + 1)
   done;
   ((float_of_int !g) /. (float_of_int k) |> int_of_float) - 1
+  *)
 
 (*Fonction swap*)
 let swap t i j =
@@ -172,44 +174,68 @@ let swap t i j =
   t.(i) <- temp
 
 (*split les données pour la matrice de confusion de test*)
-let split (train: bloc array) (p: int) : bloc array * bloc array =
+let split tab_blocs p =
   Random.self_init ();
-  let n = Array.length train in
+  let n = Array.length tab_blocs in
   (*Mélange de Knuth*)
-  for i = 0 to Array.length train - 1 do
+  for i = 0 to Array.length tab_blocs - 1 do
     let j = Random.int (i + 1) in
-    swap train i j
+    swap tab_blocs i j
   done;
   let nb = int_of_float ((float_of_int p) /. 100. *. (float_of_int n)) in
-  Array.init (nb - 1) (fun i -> train.(i)), Array.init (n - nb) (fun i -> train.(i))
+  Array.init (nb - 1) (fun i -> tab_blocs.(i)), Array.init (n - nb) (fun i -> tab_blocs.(i))
 
-let confusion (k:int) (mat:float array array) (train:bloc array) (p:int) =
-  let t, d = split train p in
+let confusion k tab_blocs p =
+  let t, d = split (Array.init (Array.length tab_blocs) Fun.id) p in
+  let train, data = Array.init (Array.length t) (fun i -> tab_blocs.(t.(i))), Array.init (Array.length d) (fun i -> tab_blocs.(d.(i))) in
   let conf = Array.make_matrix 14 14 0 in
-  for m = 0 to Array.length t - 1 do
-    let i = train.(m).cote - 1 in
-    let j = (knn k mat d m) in
-    conf.(i).(j) <- conf.(i).(j) + 1
+  for i = 0 to Array.length t - 1 do
+    let r = train.(i).cote - 1 in
+    let m = (knn k data t.(i)) in
+    conf.(r).(m) <- conf.(r).(m) + 1;
   done;
   let reussi = ref 0 in
   for i = 0 to 13 do
     reussi := !reussi + conf.(i).(i)
   done;
-  conf, ((float_of_int !reussi) /. ((float_of_int (Array.length train)) *. (float_of_int p) /. 100.))
+  ((float_of_int !reussi) /. ((float_of_int (Array.length tab_blocs)) *. (float_of_int p) /. 100.))
 
-(*let main =
-  let maxi = ref min_float in
-  let k_opti = ref 0 in
-  let mat = mat_distances [|1.;1.;1.|] tab_blocs in
-  for i = 2 to 3 do
-    let moy = ref 0. in
-    for j = 0 to 29 do
-      moy := !moy +. (confusion i mat tab_blocs 10);
-    done;
-    moy := !moy /. 30.;
-    if !moy > !maxi then (maxi := !moy; k_opti := i)
+(*Tests des valeurs optimales*)
+
+(*fonction puissance de 2*) 
+(*let rec pow2 n =
+  if n = 0 then 1
+  else 2 * (pow2 (n - 1))*)
+
+(*fonction qui convertit un entier en tableau binaire*)
+(*let int_to_bin i =
+  let t = Array.make 3 0 in
+  let s = ref i in
+  for i = 0 to 2 do
+    if !s >= pow2 (2 - i) then (
+      t.(i) <- 1;
+      s := !s - (pow2 (2 - i))
+    )
   done;
-  (*!k_opti, !maxi*)
-  print_int !k_opti;
+  t*)
+
+(*fonction main*)
+let () =
+  let p_max = ref min_float in
+  let k_opt = ref 0 in
+  for i = 0 to 50 do
+    let p_mean = ref 0. in
+    for k = 0 to 19 do
+      p_mean := !p_mean +. (confusion i tab_blocs 10)
+    done;
+    p_mean := !p_mean /. (float_of_int 20);
+    print_int i;
+    print_float !p_mean;
+    if !p_mean > !p_max then (
+      p_max := !p_mean;
+      k_opt := i;
+    )
+  done;
+  print_int !k_opt;
   print_char '\n';
-  print_float !maxi*)
+  print_float !p_max
