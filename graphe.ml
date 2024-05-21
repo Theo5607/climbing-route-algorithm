@@ -65,6 +65,7 @@ let faisable p pos_tab m (x2, y2) = (*bool si le move n'est pas aberant*)
 
 
 let dist_score (x1,y1) (x2,y2) =   (*renvoie un score entre 0 et 1 de combien l'ecart entre les 2 prises est proche d'un déplacement habituel*)
+                                    (*calculé comme ...*)
   let delta = (dist_prise (x1,y1) (x2,y2)) -. 3. in
   Float.exp ( (-1.)*.delta*.delta)
 
@@ -229,19 +230,23 @@ let find_best_end_pos pb p n dist =  (*renvoie la position de fin la plus proche
   !i_min
 
 
-let liste_position pb = 
+
+
+let affiche_pb pb =  (*calcul l'array des positions (x,y) , p et l'array des poids des mouvements depuis ces positions puis affiche*) 
   let g, p = creer_graphe pb in
   let n = Array.length p in
   let dep = pos_depart pb p n in
   let dist, pred = Dijkstra.dijkstra g dep in
   let fin = find_best_end_pos pb p n dist in
-  ((Dijkstra.chemin pred dep fin) |> List.map (pos_tab_of_int n) |> List.rev),p
+  let c = (Dijkstra.chemin pred dep fin) |> List.rev |> Array.of_list in
+  let arr_sommets = c |> Array.map (pos_tab_of_int n)  in
+  let nm = Array.length arr_sommets in
+  let arr_poids = Array.init nm (fun i -> Dijkstra.poids_arete g c.(i) c.( (i+1) mod nm )) in
 
 
-let affiche_pb pb =
-  let liste_pos, p = liste_position pb in
-  Affiche.loop p (Array.of_list liste_pos) 
+  Affiche.loop arr_sommets p arr_poids 
 ;;
 
-let json = Yojson.Basic.from_file "scorpion.json" in
+
+let json = Yojson.Basic.from_file "jak.json" in
 affiche_pb json

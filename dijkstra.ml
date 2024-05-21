@@ -7,6 +7,9 @@ let initialise_estimation (g: graphe) (s: int) : float array=
     a
 
 
+let poids_arete g i j =
+    List.fold_left (fun acc (vois,w) -> if vois=j then w else acc) max_float g.(i)
+
 let est_tendue d x y w =  (* regarde si le chemin s --> x --(w)--> y est meilleur que celui s-->y  *)
     d.(y) > d.(x) +. w
 
@@ -32,7 +35,7 @@ let dijkstra (g: graphe) (s:int) =            (*renvoie un couple d * pred avec 
     done;
     d, pred
 
-let chemin pred x y = (*renvoie le chemin allant x à y *)
+let chemin pred x y : int list = (*renvoie le chemin allant x à y avec les distances*)
     let rec aux s =
         if x=s then
             [s]
