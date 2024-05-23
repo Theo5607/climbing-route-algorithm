@@ -47,6 +47,26 @@ let dist_prise (x1,y1) (x2,y2) =  (*renvoie la distance euclidienne de la prise 
   sqrt ((d1*.d1) +. (d2*.d2))
 
 
+let ecartement_vertical p pos_tab m i =  
+  let temp = pos_tab.(m) in    (*on regarde la qualite de la position future*)
+  pos_tab.(m) <- i;
+  let v = abs ((max (snd p.(pos_tab.(0))) (snd p.(pos_tab.(1)))) - (min (snd p.(pos_tab.(2))) (snd p.(pos_tab.(3)))))
+  in
+  let delta = 9. -. (foi v) in
+  pos_tab.(m) <- temp;
+  1. -. (Float.exp ( (-0.5)*.delta*.delta))
+
+
+
+let ecartement_horizontal p pos_tab m i =
+  let temp = pos_tab.(m) in    (*on regarde la qualite de la position future*)
+  pos_tab.(m) <- i;
+  let v = abs ((max (fst p.(pos_tab.(0))) (fst p.(pos_tab.(2)))) - (min (fst p.(pos_tab.(1))) (fst p.(pos_tab.(3))))) in
+  let delta = 5. -. (foi v) in
+  pos_tab.(m) <- temp;
+  1. -. (Float.exp ( (-0.5)*.delta*.delta))
+
+
 
 let centre p pos_tab : int*int = (*renvoie la pos moyenne des 4 prises tenues*)
   ((Array.fold_left (fun acc i -> acc + fst p.(i)) 0 pos_tab) / 4) , ((Array.fold_left (fun acc i -> acc + snd p.(i)) 0 pos_tab) / 4) 
@@ -59,7 +79,7 @@ let faisable p pos_tab m (x2, y2) = (*bool si le move n'est pas aberant*)
   (snd p.(pos_tab.(m))) <= y2 &&                     (*on garde que les mouvements vers le haut ie y2 >= y1 *)    
   
   if m=2 || m=3 then  (*si on bouge un pied*)
-    y2 <= (snd p.(pos_tab.(0))) - 2 && y2 < (snd p.(pos_tab.(1))) - 2   (*on interdit d'avoir les pieds trop haut *)
+    y2 <= (snd p.(pos_tab.(0))) - 2 && y2 < (snd p.(pos_tab.(1))) - 2   (*on interdit d'avoir les pieds trop haut par rapport aux mains*)
   else 
     true
 
@@ -67,10 +87,10 @@ let faisable p pos_tab m (x2, y2) = (*bool si le move n'est pas aberant*)
 let dist_score (x1,y1) (x2,y2) =   (*renvoie un score entre 0 et 1 de combien l'ecart entre les 2 prises est proche d'un déplacement habituel*)
                                     (*calculé comme ...*)
   let delta = (dist_prise (x1,y1) (x2,y2)) -. 3. in
-  Float.exp ( (-1.)*.delta*.delta)
+  1. -. (Float.exp ( (-1.)*.delta*.delta))
 
 
-let croise_score p pos_tab m (x2,_) =   (*malus si on croise les mains ou les pieds*)
+let croise_score p pos_tab m (x2,_) =   (*malus de 1 si on croise les mains ou les pieds*)
   if (m = 0 && x2 < fst p.(pos_tab.(1))) 
   || (m = 1 && x2 > fst p.(pos_tab.(0))) 
   || (m = 2 && x2 < fst p.(pos_tab.(3)))  
@@ -82,13 +102,14 @@ let croise_score p pos_tab m (x2,_) =   (*malus si on croise les mains ou les pi
 
   
 
-let comfort_score p pos_tab m i =    (*garder les pieds loins des mains*)
+(*let comfort_score p pos_tab m i =    (*garder les pieds loins des mains*)
   let pos_tab' = Array.copy pos_tab in
   pos_tab'.(m) <- i;
   let yhm = (snd p.(pos_tab.(0))) + (snd p.(pos_tab.(1))) in
   let ybm = (snd p.(pos_tab.(2))) + (snd p.(pos_tab.(3))) in
   let delta = foi ( (abs (yhm - ybm)) - 6) in
-  Float.exp ( (-1.)*.delta*.delta)
+  1. -. (Float.exp ( (-1.)*.delta*.delta)) *)
+
 
 let prise_score m (x,y) = 
   let diff = diff_tab.(18 - y -1).(x) /. 10. in
@@ -98,8 +119,14 @@ let prise_score m (x,y) =
     0.5 *. diff
 
 
-let poids p pos_tab m i =
-  0.5 *. (dist_score p.(pos_tab.(m)) p.(i)) +. 0.6 *. (croise_score p pos_tab m p.(i)) +. 0.5 *. (comfort_score p pos_tab m i) +. 0.4 *. (prise_score m p.(i)) 
+let poids p pos_tab m i =  (* p : coordonnees des prises du bloc
+                              pos_tab : [md, mg, pd, pg]
+                              m : indice du membre deplacé dans [0,3]
+                              i : indice dans p de la nouvelle prise utilisee
+*)
+
+  3. *. (dist_score p.(pos_tab.(m)) p.(i)) +. 10. *. (croise_score p pos_tab m p.(i)) 
+  +. 2. *. (ecartement_vertical p pos_tab m i) +. 4. *. (ecartement_horizontal p pos_tab m i) +. 4. *. (prise_score m p.(i)) 
 
 
 
@@ -248,5 +275,5 @@ let affiche_pb pb =  (*calcul l'array des positions (x,y) , p et l'array des poi
 ;;
 
 
-let json = Yojson.Basic.from_file "jak.json" in
+let json = Yojson.Basic.from_file "wonderland.json" in
 affiche_pb json
