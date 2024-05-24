@@ -35,13 +35,15 @@ let dijkstra (g: graphe) (s:int) =            (*renvoie un couple d * pred avec 
     done;
     d, pred
 
+exception PasDeChemin;;
+
 let chemin pred x y : int list = (*renvoie le chemin allant x à y avec les distances*)
     let rec aux s =
         if x=s then
             [s]
         else
             match pred.(s) with
-            |None -> failwith "pas de chemin"
+            |None -> raise PasDeChemin
             |Some s' -> s::(aux s')
     in
     aux y

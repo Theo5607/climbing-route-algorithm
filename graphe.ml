@@ -31,6 +31,26 @@ let diff_tab = [|
 ;;
 
 
+let grade_to_int = function
+  | "5+" -> 1
+  | "6A" -> 2
+  | "6A+" -> 3
+  | "6B" -> 4
+  | "6B+" -> 4
+  | "6C" -> 5
+  | "6C+" -> 5
+  | "7A" -> 6
+  | "7A+" -> 7
+  | "7B" -> 8
+  | "7B+" -> 8
+  | "7C" -> 9
+  | "7C+" -> 10
+  | "8A" -> 11
+  | "8A+" -> 12
+  | "8B" -> 13
+  | "8B+" -> 14
+  |_ -> 0
+
 
 let id_to_coord (s : string) : int*int =  (*renvoie les coordonnees de la prise ex : A4 -> (0,3)=(x,y) avec origine en bas a gauche *)
   (-65 + int_of_char s.[0]) , (String.sub s 1 (-1 + String.length s) |> int_of_string) - 1
@@ -274,6 +294,34 @@ let affiche_pb pb =  (*calcul l'array des positions (x,y) , p et l'array des poi
   Affiche.loop arr_sommets p arr_poids 
 ;;
 
+let calcul_arr_diff pb =
+  let g, p = creer_graphe pb in
+  let n = Array.length p in
+  let dep = pos_depart pb p n in
+  let dist, pred = Dijkstra.dijkstra g dep in
+  let fin = find_best_end_pos pb p n dist in
+  let c = (Dijkstra.chemin pred dep fin) |> List.rev |> Array.of_list in
+  let nm = Array.length c in
+  let arr_poids = Array.init (nm-1) (fun i -> Dijkstra.poids_arete g c.(i) c.(i+1)) in
+  arr_poids
 
-let json = Yojson.Basic.from_file "wonderland.json" in
-affiche_pb json
+let diff_bloc pb =
+  try 
+    let a = calcul_arr_diff pb in
+    let n = a |> Array.length |> foi in
+    let s = Array.fold_left (fun acc w -> acc +. w) 0. a in
+    s /. n
+  with
+    |Dijkstra.PasDeChemin -> 0.
+
+let diff_blocs i json : (int*int) list =
+  let rec aux l i r = match l,i with
+    |_,0 -> r
+    |[],_ -> r
+    |pb::q, i -> aux q (i-1) (((int_of_float (diff_bloc pb)), (pb |> (member "grade") |> to_string |> grade_to_int))::r)
+  in aux (json |> member "data" |> to_list) i []
+;;
+
+
+let json = Yojson.Basic.from_file "problems MoonBoard Masters 2017 25.json" in
+json |> diff_blocs 50

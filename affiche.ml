@@ -1,4 +1,4 @@
-open Raylib
+open Raylib;;
 
 let w = 430;;
 let h = 700;;
@@ -51,7 +51,7 @@ let affiche_mur (p : (int*int) array) =
 		draw_text (Float.to_string (diff_tab.(18 - y -1).(x))) (x*dx + 10) ((18-y)*dy) 10 Color.black
 	) p
 
-let affiche_pos (p : (int*int) array) (pos_tab : int array) (w : float) = (*p : coordonnees des positions   ,   pos_tab : [md, ...]   , w : poids du mouvement prochain*)  
+let affiche_pos (p : (int*int) array) (pos_tab : int array) (w : float) = (*p : coordonnees des prises du bloc , pos_tab : [md, ...]   , w : poids du mouvement prochain*)  
 	let xm,ym = centre p pos_tab in
 	let mh = Vector2.create (foi (xm*dx)) (foi ((18 - ym - 1)*dy)) in
 	let mb = Vector2.create (foi (xm*dx)) (foi ((18 - ym + 1)*dy)) in
@@ -70,9 +70,9 @@ let affiche_pos (p : (int*int) array) (pos_tab : int array) (w : float) = (*p : 
 
 let loop (pos_tab_arr : int array array) (p : (int*int) array) (arr_poids : float array) =
 	init_window w h "ClimbingRouteAlgorithm";
-  	set_target_fps 60;
-  	let n = Array.length pos_tab_arr in
-  	let i = ref 0 in
+	set_target_fps 60;
+	let n = Array.length pos_tab_arr in
+	let i = ref 0 in
 	while not ( window_should_close () ) do
 		if is_key_pressed Key.Right then
 			i := (!i + 1) mod n
@@ -86,3 +86,15 @@ let loop (pos_tab_arr : int array array) (p : (int*int) array) (arr_poids : floa
 	done;
 	close_window () 
 
+
+let plot_diff (l : (int*int) list) =
+	init_window 400 400 "ClimbingRouteAlgorithm";
+	set_target_fps 60;
+	begin_drawing ();
+	clear_background Color.raywhite;
+	List.iter (fun (d,grade) -> if d <> 0. then draw_circle (d*400/25) (400 - grade*400/15) 5. Color.black) l;
+	end_drawing ();
+	while not (window_should_close ()) do
+		()
+	done;
+	close_window ()
