@@ -314,14 +314,24 @@ let diff_bloc pb =
   with
     |Dijkstra.PasDeChemin -> 0.
 
-let diff_blocs i json : (int*int) list =
+let diff_blocs i json : (float*int) list =
   let rec aux l i r = match l,i with
     |_,0 -> r
     |[],_ -> r
-    |pb::q, i -> aux q (i-1) (((int_of_float (diff_bloc pb)), (pb |> (member "grade") |> to_string |> grade_to_int))::r)
+    |pb::q, i -> aux q (i-1) (((diff_bloc pb), (pb |> (member "grade") |> to_string |> grade_to_int))::r)
   in aux (json |> member "data" |> to_list) i []
 ;;
 
 
-let json = Yojson.Basic.from_file "problems MoonBoard Masters 2017 25.json" in
-json |> diff_blocs 50
+let fwrite l =
+  let f = open_out "data.txt" in
+  List.iter (fun (d,grade) -> Printf.fprintf f "%f %d\n" d grade) l;
+  close_out f
+;;
+
+
+let json = Yojson.Basic.from_file "blocs/problems MoonBoard Masters 2017 25.json" in
+json |> diff_blocs 500 |> fwrite;
+
+(* let json = Yojson.Basic.from_file "blocs/jak.json" in
+json |> affiche_pb; *)

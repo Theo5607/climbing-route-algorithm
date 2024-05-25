@@ -87,14 +87,14 @@ let loop (pos_tab_arr : int array array) (p : (int*int) array) (arr_poids : floa
 	close_window () 
 
 
-let plot_diff (l : (int*int) list) =
+(* let plot_diff (l : (int*int) list) =
 	init_window 400 400 "ClimbingRouteAlgorithm";
 	set_target_fps 60;
 	begin_drawing ();
 	clear_background Color.raywhite;
-	List.iter (fun (d,grade) -> if d <> 0. then draw_circle (d*400/25) (400 - grade*400/15) 5. Color.black) l;
+	List.iter (fun (d,grade) -> if d <> 0 then draw_circle (d*400/25) (400 - grade*400/15) 5. Color.black) l;
 	end_drawing ();
 	while not (window_should_close ()) do
 		()
 	done;
-	close_window ()
+	close_window () *)
