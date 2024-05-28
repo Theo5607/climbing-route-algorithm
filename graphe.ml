@@ -104,13 +104,13 @@ let faisable p pos_tab m (x2, y2) = (*bool si le move n'est pas aberant*)
     true
 
 
-let dist_score (x1,y1) (x2,y2) =   (*renvoie un score entre 0 et 1 de combien l'ecart entre les 2 prises est proche d'un déplacement habituel*)
+let dist_poids (x1,y1) (x2,y2) =   (*renvoie un poids entre 0 et 1 de combien l'ecart entre les 2 prises est proche d'un déplacement habituel*)
                                     (*calculé comme ...*)
   let delta = (dist_prise (x1,y1) (x2,y2)) -. 3. in
   1. -. (Float.exp ( (-1.)*.delta*.delta))
 
 
-let croise_score p pos_tab m (x2,_) =   (*malus de 1 si on croise les mains ou les pieds*)
+let croise_poids p pos_tab m (x2,_) =   (*malus de 1 si on croise les mains ou les pieds*)
   if (m = 0 && x2 < fst p.(pos_tab.(1))) 
   || (m = 1 && x2 > fst p.(pos_tab.(0))) 
   || (m = 2 && x2 < fst p.(pos_tab.(3)))  
@@ -120,18 +120,7 @@ let croise_score p pos_tab m (x2,_) =   (*malus de 1 si on croise les mains ou l
     0.
 
 
-  
-
-(*let comfort_score p pos_tab m i =    (*garder les pieds loins des mains*)
-  let pos_tab' = Array.copy pos_tab in
-  pos_tab'.(m) <- i;
-  let yhm = (snd p.(pos_tab.(0))) + (snd p.(pos_tab.(1))) in
-  let ybm = (snd p.(pos_tab.(2))) + (snd p.(pos_tab.(3))) in
-  let delta = foi ( (abs (yhm - ybm)) - 6) in
-  1. -. (Float.exp ( (-1.)*.delta*.delta)) *)
-
-
-let prise_score m (x,y) = 
+let prise_poids m (x,y) = 
   let diff = diff_tab.(18 - y -1).(x) /. 10. in
   if m = 0 || m = 1 then 
     diff
@@ -145,8 +134,8 @@ let poids p pos_tab m i =  (* p : coordonnees des prises du bloc
                               i : indice dans p de la nouvelle prise utilisee
 *)
 
-  3. *. (dist_score p.(pos_tab.(m)) p.(i)) +. 10. *. (croise_score p pos_tab m p.(i)) 
-  +. 2. *. (ecartement_vertical p pos_tab m i) +. 4. *. (ecartement_horizontal p pos_tab m i) +. 4. *. (prise_score m p.(i)) 
+  3. *. (dist_poids p.(pos_tab.(m)) p.(i)) +. 10. *. (croise_poids p pos_tab m p.(i)) 
+  +. 2. *. (ecartement_vertical p pos_tab m i) +. 4. *. (ecartement_horizontal p pos_tab m i) +. 4. *. (prise_poids m p.(i)) 
 
 
 
@@ -204,6 +193,7 @@ let emonde g = (*retire les voisins qui apparaissent plusieurs fois ainsi que le
     g.(x) <- List.filter (fun (y,_) -> if vu.(y) then false else (vu.(y) <- true; true)) g.(x)
   done
 
+
 let liste_prises_augmentee pb = (*rajoute une prise de pieds pour le départ*)
   let l = liste_prises pb in
   let d1,d2 = prises_mains_depart pb in
@@ -237,6 +227,7 @@ let creer_graphe pb : (int * float) list array * (int * int) array =
   done;
   emonde g;
   g,p
+
 
 let pos_depart pb p n = (*renvoie l'int indiquant la position de depart*)
   let d1,d2 = prises_mains_depart pb in
@@ -330,8 +321,8 @@ let fwrite l =
 ;;
 
 
-let json = Yojson.Basic.from_file "blocs/problems MoonBoard Masters 2017 25.json" in
-json |> diff_blocs 500 |> fwrite;
+(* let json = Yojson.Basic.from_file "blocs/problems MoonBoard Masters 2017 25.json" in
+json |> diff_blocs 500 |> fwrite; *)
 
-(* let json = Yojson.Basic.from_file "blocs/jak.json" in
-json |> affiche_pb; *)
+let json = Yojson.Basic.from_file "blocs/wonderland.json" in
+  json |> affiche_pb;
