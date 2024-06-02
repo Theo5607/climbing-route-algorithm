@@ -84,7 +84,7 @@ let foi = float_of_int;;
 ;; *)
 
 
-(* let diff_tab = [|            (*bloc violet*)
+let diff_tab = [|            (*bloc violet*)
   [|0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.|];
   [|0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.|];
   [|0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.|];
@@ -103,10 +103,10 @@ let foi = float_of_int;;
   [|0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.|];
   [|0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.|];
   [|0.; 0.; 0.; 4.; 0.; 0.; 0.; 0.; 0.; 0.; 0.|]
-|] *)
+|]
 
 
-let diff_tab = [|            (*bloc bleu*)
+(* let diff_tab = [|            (*bloc bleu*)
   [|3.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.|];
   [|0.; 0.; 0.; 0.; 7.; 0.; 0.; 0.; 0.; 0.; 0.|];
   [|0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.|];
@@ -124,7 +124,7 @@ let diff_tab = [|            (*bloc bleu*)
   [|0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 6.; 0.; 0.|];
   [|0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.|];
   [|0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.|];
-  [|0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 6.|]|]
+  [|0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 6.|]|] *)
 
 
 let grade_to_int = function
@@ -271,12 +271,15 @@ let croise_poids p pos_tab m (x2,_) =   (*malus de 1 si on croise les mains ou l
     0.
 
 
-let prise_poids m (x,y) = 
+let prise_score m (x,y) = 
   let diff = diff_tab.(18 - y -1).(x) /. 10. in
   if m = 0 || m = 1 then 
     diff
   else
     0.5 *. diff
+
+let prise_poids m (x1, y1) (x2, y2) =
+  0.5 *.( (prise_score m (x1,y1)) +. (prise_score m (x2,y2))) 
 
 
 let poids p pos_tab m i =  (* p : coordonnees des prises du bloc
@@ -286,7 +289,7 @@ let poids p pos_tab m i =  (* p : coordonnees des prises du bloc
 *)
 
   10. *. (dist_poids p.(pos_tab.(m)) p.(i)) +. 5. *. (croise_poids p pos_tab m p.(i)) 
-  +. 6. *. (ecartement_vertical p pos_tab m i) +. 2. *. (ecartement_horizontal p pos_tab m i) +. 2. *. (prise_poids m p.(i)) 
+  +. 6. *. (ecartement_vertical p pos_tab m i) +. 2. *. (ecartement_horizontal p pos_tab m i) +. 2. *. (prise_poids m p.(pos_tab.(m)) p.(i)) 
 
 
 
@@ -305,10 +308,10 @@ let faisable p pos_tab m (x2, y2) = (*bool si le move n'est pas aberant*)
 
   dist_prise (centre p pos_tab) (x2,y2) < 8.0  && (*on verifie si la prise est atteignable *)
 
-  (snd p.(pos_tab.(m))) <= y2 + 1 &&                     (*on garde que les mouvements vers le haut ie y2 >= y1 *)    
+  (snd p.(pos_tab.(m))) <= y2 + 1 &&                     (*on garde que les mouvements vers le haut ie y2 >= y1 - 1*)    
   
   if m=2 || m=3 then  (*si on bouge un pied*)
-    y2 <= (snd p.(pos_tab.(0))) - 2 && y2 < (snd p.(pos_tab.(1))) - 2   (*on interdit d'avoir les pieds trop haut par rapport aux mains*)
+    y2 <= (snd p.(pos_tab.(0))) - 2 && y2 <= (snd p.(pos_tab.(1))) - 2   (*on interdit d'avoir les pieds trop haut par rapport aux mains*)
   else 
     true
 
@@ -343,11 +346,13 @@ let creer_graphe pb : (int * float) list array * (int * int) array =
     let pos_tab = pos_tab_of_int n pos in
     for m=0 to 3 do           (*m = indice du membre déplacé*)
       for i=0 to n-1 do       (*i = indice de la nouvelle prise dans p*)
-        if faisable p pos_tab m p.(i) then begin
-          let dist = poids p pos_tab m i in
+        
+        if (faisable p pos_tab m p.(i)) then begin
           let v = pos_tab.(m) in
+          let w = poids p pos_tab m i in
+          (* Printf.printf "%f\n" w; *)
           pos_tab.(m) <- i;
-          g.(pos) <- ((int_of_pos_tab n pos_tab), dist)::g.(pos);      (*on ajoute au graphe une arete de pos à pos' ou pos` est la position apres avoir deplacé le membre m sur la i-eme prise *)
+          g.(pos) <- ((int_of_pos_tab n pos_tab), w)::g.(pos);      (*on ajoute au graphe une arete de pos à pos' ou pos` est la position apres avoir deplacé le membre m sur la i-eme prise *)
           pos_tab.(m) <- v
         end
       done;
@@ -382,6 +387,29 @@ let pos_depart pb p n = (*renvoie l'int indiquant la position de depart*)
   [|!p2; !p1; 0; 0|] |> int_of_pos_tab n
 
 
+
+(* let list_end_pos pb p n =
+  let f1,f2 = prises_mains_fin pb in
+  (*f1 : main gauche (x plus petit)  f2 : main droite*)
+  let p1 = ref (-1) in
+  let p2 = ref (-1) in  (*indice dans p de d1 et d2*)
+  Array.iteri (fun i c -> 
+  if c = f1 then
+    p1 := i
+  ;
+  if c = f2 then
+    p2 := i
+  ) p;   (*trouve l'indice associé a ces prises*)
+  let i_min = ref (-1) in
+  let n2 = n*n in
+  let n4 = n2*n2 in
+  let l = ref [] in
+  for k=0 to (n4 - 0 - !p2 - n*(!p1)) / n2 do  (*i mod n² = p2 + n*p1*)
+    let i = !p2 + n*(!p1) + k * n2 in    (*toutes les pos où les mains sont sur les prises de fin*)
+    l := i::(!l)
+  done;
+  !l *)
+
 let find_best_end_pos pb p n dist =  (*renvoie la position de fin la plus proche trouvée depuis l'array des distances dist*)
   let f1,f2 = prises_mains_fin pb in
   (*f1 : main gauche (x plus petit)  f2 : main droite*)
@@ -405,7 +433,10 @@ let find_best_end_pos pb p n dist =  (*renvoie la position de fin la plus proche
       d_min := dist.(i)
     end
   done;
-  !i_min
+  if !i_min = -1 then
+    failwith "pas de position finale atteignable"
+  else
+    !i_min
 
 
 
@@ -449,6 +480,25 @@ let deplacement n i1 i2 =   (*renvoie l'indice du membre déplacé entre 2 posit
   !m
 
 
+let diff_bloc_h pb =
+  try 
+    let g, p = creer_graphe pb in
+    let n = Array.length p in
+    let dep = pos_depart pb p n in
+    let dist, pred = Dijkstra.dijkstra g dep in
+    let fin = find_best_end_pos pb p n dist in
+    let c = (Dijkstra.chemin pred dep fin) |> List.rev |> Array.of_list in
+    let arr_sommets = c |> Array.map (pos_tab_of_int n)  in
+    let nm = Array.length arr_sommets in
+    let acc = ref 0. in
+    for i=0 to nm - 2 do
+      acc := !acc +. Dijkstra.poids_arete g c.(i) c.(i+1)
+    done;
+    !acc /. (foi (nm - 1))
+  with
+  |_ -> 0.
+
+
 let diff_bloc pb =      (*renvoie entre 0. et 1. la moyenne des difficulteś des mouvements*)
   try
 
@@ -469,42 +519,42 @@ let diff_bloc pb =      (*renvoie entre 0. et 1. la moyenne des difficulteś des
       let m = deplacement n c.(k) c.(k+1) in
       let pos_tab = pos_tab_of_int n c.(k) in
       let i = (pos_tab_of_int n c.(k+1)).(m) in
-      diff_moy := !diff_moy +. (prise_poids m p.(i));
+      diff_moy := !diff_moy +. (prise_poids m p.(pos_tab.(m)) p.(i));
       dist_moy := !dist_moy +. (dist_poids p.(pos_tab.(m)) p.(i));
       croise_moy := !croise_moy +. (croise_poids p pos_tab m p.(i));
     done;
 
-    (!diff_moy /. (foi n_mouv)) +. (!dist_moy /. (foi n_mouv)) 
+    (!diff_moy +. !dist_moy) /. (foi n_mouv) 
 
   with
-  |Dijkstra.PasDeChemin -> 0.
-  |Invalid_argument _ -> 0.
+  |Dijkstra.PasDeChemin -> (Printf.printf "pas_de_chemin\n" ; 0.)
+  |Invalid_argument _ -> (Printf.printf "bug_bizarre\n" ; 0.)
+
+let diff_bloc_caca pb =
+  let l = liste_prises pb in
+  (List.fold_left (fun acc c -> acc +. prise_score 2 c) 0. l) /. (l |> List.length |> foi)
   
 
 
-let diff_blocs i json : (float*int) list =
-  let rec aux l i r = match l,i with
-    |_,0 -> r
-    |[],_ -> r
-    |pb::q, i -> 
-      if (pb |> (member "repeats") |> to_int) > 5 then
-        aux q (i-1) (((diff_bloc pb), (pb |> (member "grade") |> to_string |> grade_to_int))::r)
-      else
-        aux q i r
-
-  in aux (json |> member "data" |> to_list) i []
+let diff_blocs i j json =
+  let f = open_out "data_caca.txt" in
+  let a = json |> member "data" |> to_list |> Array.of_list in
+  for k=i to j-1 do
+    Printf.fprintf f "%f %d\n" (diff_bloc_caca a.(k)) (a.(k) |> (member "grade") |> to_string |> grade_to_int)
+  done;
+  close_out f
 
 
 
 let fwrite l =
-  let f = open_out "data.txt" in
+  let f = open_out "data_caca.txt" in
   List.iter (fun (diff,grade) -> Printf.fprintf f "%f %d\n" diff grade) l;
   close_out f
 
 ;;
 
 (* let json = Yojson.Basic.from_file "blocs/problems MoonBoard Masters 2017 25.json" in
-json |> diff_blocs 100 |> fwrite *)
+  json |> diff_blocs 100 |> fwrite *)
 
 
 (* let calcul_arr_diff pb =
@@ -521,9 +571,21 @@ json |> diff_blocs 100 |> fwrite *)
 
 
 (* let json = Yojson.Basic.from_file "blocs/problems MoonBoard Masters 2017 25.json" in
-json |> diff_blocs 500 |> fwrite; *)
+json |> diff_blocs 100 |> fwrite; *)
+
+(* let pb = Yojson.Basic.from_file "blocs/bleu.json" in
+let g, p = creer_graphe pb in
+let n = Array.length p in
+let dep = pos_depart pb p n in
+let dist, _ = Dijkstra.dijkstra g dep in
+let fin = find_best_end_pos pb p n dist in
+let c = (Dijkstra.greedy_backtracking g dep fin) |> Array.of_list in
+let arr_sommets = c |> Array.map (pos_tab_of_int n)  in
+let nm = Array.length arr_sommets in
+let arr_poids = Array.init nm (fun i -> Dijkstra.poids_arete g c.(i) c.( (i+1) mod nm )) in
 
 
+Affiche.loop arr_sommets p arr_poids *)
 
 
 let json = Yojson.Basic.from_file "blocs/bleu.json" in

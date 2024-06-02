@@ -8,7 +8,7 @@ let initialise_estimation (g: graphe) (s: int) : float array=
 
 
 let poids_arete g i j =
-    List.fold_left (fun acc (vois,w) -> if vois=j then w else acc) max_float g.(i)
+    List.fold_left (fun acc (vois,w) -> if vois=j then min w acc else acc) max_float g.(i)
 
 let est_tendue d x y w =  (* regarde si le chemin s --> x --(w)--> y est meilleur que celui s-->y  *)
     d.(y) > d.(x) +. w
@@ -34,6 +34,35 @@ let dijkstra (g: graphe) (s:int) =            (*renvoie un couple d * pred avec 
         
     done;
     d, pred
+
+exception Trouve of int list;;
+
+let greedy_backtracking (g : graphe) s f =
+    let vu = Array.make (Array.length g) false in
+    let rec aux x = 
+        vu.(s) <- true;
+        if x = f then 
+            raise (Trouve [])
+        else
+            List.iter (fun (y,_) -> 
+                try
+                    if not vu.(y) then begin
+                        vu.(y) <- true;
+                        aux y
+                    end
+                with
+                |Trouve c -> raise (Trouve (y::c))
+            ) (List.sort (fun x y -> compare (snd x) (snd y)) g.(x))
+    in
+    try
+        aux s;
+        failwith "pas de chemin gars"
+    with
+    |Trouve l -> l
+
+;;
+
+
 
 exception PasDeChemin;;
 
