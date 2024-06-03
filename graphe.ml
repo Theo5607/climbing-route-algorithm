@@ -21,7 +21,7 @@ let iof = int_of_float;;
 let foi = float_of_int;;
 
 
-(* let diff_tab = [|              (*la matrice des diffs pour la moonboard*)
+let diff_tab = [|              (*la matrice des diffs pour la moonboard*)
 [|2.5;0.6;7.2;4.4;4.7;3.8;8.1;1.9;7.2;1.9;7.5|];
 [|7.8;9.4;8.1;5.3;8.1;5.0;4.7;6.3;10.0;9.4;4.7|];
 [|3.4;10.0;0.3;6.6;4.7;8.8;6.3;7.5;5.3;1.3;7.5|];
@@ -40,7 +40,7 @@ let foi = float_of_int;;
 [|4.1;3.8;9.4;7.5;3.1;8.1;6.9;7.2;6.6;6.6;7.8|];
 [|5.6;3.8;9.4;2.8;7.8;3.8;7.2;5.3;5.9;3.1;5.6|];
 [|3.4;4.4;8.1;5.0;7.8;4.1;6.9;6.3;6.6;6.6;2.5|]|]
-;; *)
+;;
 
 (*[|[|0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.|];
   [|0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.|];
@@ -84,7 +84,7 @@ let foi = float_of_int;;
 ;; *)
 
 
-let diff_tab = [|            (*bloc violet*)
+(* let diff_tab = [|            (*bloc violet*)
   [|0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.|];
   [|0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.|];
   [|0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.|];
@@ -103,7 +103,7 @@ let diff_tab = [|            (*bloc violet*)
   [|0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.|];
   [|0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.|];
   [|0.; 0.; 0.; 4.; 0.; 0.; 0.; 0.; 0.; 0.; 0.|]
-|]
+|] *)
 
 
 (* let diff_tab = [|            (*bloc bleu*)
@@ -235,17 +235,21 @@ let ecartement_vertical p pos_tab m i =
   if v > 11 then
     infinity
   else
-  1. -. (Float.exp ( (-0.3)*.delta*.delta))
+  (* 1. -. (Float.exp ( (-0.3)*.delta*.delta)) *)
+  abs_float delta
 
 
 
 let ecartement_horizontal p pos_tab m i =
   let temp = pos_tab.(m) in    (*on regarde la qualite de la position future*)
   pos_tab.(m) <- i;
-  let v = abs ((max (fst p.(pos_tab.(0))) (fst p.(pos_tab.(2)))) - (min (fst p.(pos_tab.(1))) (fst p.(pos_tab.(3))))) in
-  let delta = 4. -. (foi v) in
+  let v = abs (max (fst p.(pos_tab.(0))) (max (fst p.(pos_tab.(1))) (max (fst p.(pos_tab.(2))) (fst p.(pos_tab.(3)))))) 
+              - (min (fst p.(pos_tab.(0))) (min (fst p.(pos_tab.(1))) (min (fst p.(pos_tab.(2))) (fst p.(pos_tab.(3)))))) in
   pos_tab.(m) <- temp;
-  1. -. (Float.exp ( (-0.5)*.delta*.delta))
+
+  let delta = 2. -. (foi v) in
+  (* 1. -. (Float.exp ( (-0.5)*.delta*.delta)) *)
+  abs_float delta
 
 
 
@@ -271,15 +275,25 @@ let croise_poids p pos_tab m (x2,_) =   (*malus de 1 si on croise les mains ou l
     0.
 
 
-let prise_score m (x,y) = 
-  let diff = diff_tab.(18 - y -1).(x) /. 10. in
+let prise_diff pos_tab m (x,y) = 
+  let n_membres = Array.fold_left (fun acc e -> if pos_tab.(m) = e then acc +. 1. else acc) 0. pos_tab in  (*nombres de membres sur cette prise*)
+  let diff = diff_tab.(17 - y).(x) /. 10. in
   if m = 0 || m = 1 then 
-    diff
+    n_membres *. diff
   else
-    0.5 *. diff
+    n_membres *. 0.5 *. diff
 
-let prise_poids m (x1, y1) (x2, y2) =
-  0.5 *.( (prise_score m (x1,y1)) +. (prise_score m (x2,y2))) 
+
+
+let prise_poids p pos_tab m i =
+  let temp = pos_tab.(m) in    (*on regarde la qualite de la position future*)
+  pos_tab.(m) <- i;
+  let acc = ref 0. in
+  for k=0 to 3 do
+    acc := !acc +. prise_diff pos_tab k p.(k)
+  done;
+   pos_tab.(m) <- temp;
+   !acc /. 4.
 
 
 let poids p pos_tab m i =  (* p : coordonnees des prises du bloc
@@ -288,8 +302,8 @@ let poids p pos_tab m i =  (* p : coordonnees des prises du bloc
                               i : indice dans p de la nouvelle prise utilisee
 *)
 
-  10. *. (dist_poids p.(pos_tab.(m)) p.(i)) +. 5. *. (croise_poids p pos_tab m p.(i)) 
-  +. 6. *. (ecartement_vertical p pos_tab m i) +. 2. *. (ecartement_horizontal p pos_tab m i) +. 2. *. (prise_poids m p.(pos_tab.(m)) p.(i)) 
+   2. *. (dist_poids p.(pos_tab.(m)) p.(i)) +. 2. *. (croise_poids p pos_tab m p.(i)) 
+  +. 1. *. (ecartement_vertical p pos_tab m i) +.  1. *. (ecartement_horizontal p pos_tab m i) +. 2. *. (prise_poids p pos_tab m i) 
 
 
 
@@ -304,7 +318,7 @@ let poids p pos_tab m i =  (* p : coordonnees des prises du bloc
 
 
 
-let faisable p pos_tab m (x2, y2) = (*bool si le move n'est pas aberant*)
+let faisable (p : (int*int) array)  (pos_tab : int array) (m : int) (x2, y2) : bool = 
 
   dist_prise (centre p pos_tab) (x2,y2) < 8.0  && (*on verifie si la prise est atteignable *)
 
@@ -350,7 +364,6 @@ let creer_graphe pb : (int * float) list array * (int * int) array =
         if (faisable p pos_tab m p.(i)) then begin
           let v = pos_tab.(m) in
           let w = poids p pos_tab m i in
-          (* Printf.printf "%f\n" w; *)
           pos_tab.(m) <- i;
           g.(pos) <- ((int_of_pos_tab n pos_tab), w)::g.(pos);      (*on ajoute au graphe une arete de pos à pos' ou pos` est la position apres avoir deplacé le membre m sur la i-eme prise *)
           pos_tab.(m) <- v
@@ -388,28 +401,6 @@ let pos_depart pb p n = (*renvoie l'int indiquant la position de depart*)
 
 
 
-(* let list_end_pos pb p n =
-  let f1,f2 = prises_mains_fin pb in
-  (*f1 : main gauche (x plus petit)  f2 : main droite*)
-  let p1 = ref (-1) in
-  let p2 = ref (-1) in  (*indice dans p de d1 et d2*)
-  Array.iteri (fun i c -> 
-  if c = f1 then
-    p1 := i
-  ;
-  if c = f2 then
-    p2 := i
-  ) p;   (*trouve l'indice associé a ces prises*)
-  let i_min = ref (-1) in
-  let n2 = n*n in
-  let n4 = n2*n2 in
-  let l = ref [] in
-  for k=0 to (n4 - 0 - !p2 - n*(!p1)) / n2 do  (*i mod n² = p2 + n*p1*)
-    let i = !p2 + n*(!p1) + k * n2 in    (*toutes les pos où les mains sont sur les prises de fin*)
-    l := i::(!l)
-  done;
-  !l *)
-
 let find_best_end_pos pb p n dist =  (*renvoie la position de fin la plus proche trouvée depuis l'array des distances dist*)
   let f1,f2 = prises_mains_fin pb in
   (*f1 : main gauche (x plus petit)  f2 : main droite*)
@@ -425,7 +416,7 @@ let find_best_end_pos pb p n dist =  (*renvoie la position de fin la plus proche
   let i_min = ref (-1) in
   let n2 = n*n in
   let n4 = n2*n2 in
-  let d_min = ref (1000.) in
+  let d_min = ref max_float in
   for k=0 to (n4 - 0 - !p2 - n*(!p1)) / n2 do  (*i mod n² = p2 + n*p1*)
     let i = !p2 + n*(!p1) + k * n2 in    (*toutes les pos où les mains sont sur les prises de fin*)
     if dist.(i) < !d_min then begin
@@ -519,7 +510,7 @@ let diff_bloc pb =      (*renvoie entre 0. et 1. la moyenne des difficulteś des
       let m = deplacement n c.(k) c.(k+1) in
       let pos_tab = pos_tab_of_int n c.(k) in
       let i = (pos_tab_of_int n c.(k+1)).(m) in
-      diff_moy := !diff_moy +. (prise_poids m p.(pos_tab.(m)) p.(i));
+      diff_moy := !diff_moy +. (prise_poids p pos_tab m i);
       dist_moy := !dist_moy +. (dist_poids p.(pos_tab.(m)) p.(i));
       croise_moy := !croise_moy +. (croise_poids p pos_tab m p.(i));
     done;
@@ -530,13 +521,13 @@ let diff_bloc pb =      (*renvoie entre 0. et 1. la moyenne des difficulteś des
   |Dijkstra.PasDeChemin -> (Printf.printf "pas_de_chemin\n" ; 0.)
   |Invalid_argument _ -> (Printf.printf "bug_bizarre\n" ; 0.)
 
-let diff_bloc_caca pb =
+(* let diff_bloc_caca pb =
   let l = liste_prises pb in
   (List.fold_left (fun acc c -> acc +. prise_score 2 c) 0. l) /. (l |> List.length |> foi)
   
+ *)
 
-
-let diff_blocs i j json =
+(* let diff_blocs i j json =
   let f = open_out "data_caca.txt" in
   let a = json |> member "data" |> to_list |> Array.of_list in
   for k=i to j-1 do
@@ -544,7 +535,7 @@ let diff_blocs i j json =
   done;
   close_out f
 
-
+ *)
 
 let fwrite l =
   let f = open_out "data_caca.txt" in
