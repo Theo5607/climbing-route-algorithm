@@ -579,5 +579,18 @@ let arr_poids = Array.init nm (fun i -> Dijkstra.poids_arete g c.(i) c.( (i+1) m
 Affiche.loop arr_sommets p arr_poids *)
 
 
-let json = Yojson.Basic.from_file "blocs/bleu.json" in
-  json |> affiche_pb
+(* let json = Yojson.Basic.from_file "blocs/bleu.json" in
+  json |> affiche_pb *)
+
+
+(* pour theo : 
+
+let pb = Yojson.Basic.from_file "blocs/bleu.json" in
+let g, p = creer_graphe pb in
+let n = Array.length p in
+let dep = pos_depart pb p n in
+let dist, pred = Dijkstra.dijkstra g dep in
+let fin = find_best_end_pos pb p n dist in
+let c = (Dijkstra.chemin pred dep fin) |> List.rev |> Array.of_list in
+let arr_sommets = Array.map (fun i -> (Array.map (fun i -> p.(i))) (pos_tab_of_int n i)) c in
+arr_sommets *)
