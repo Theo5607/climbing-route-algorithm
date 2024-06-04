@@ -107,7 +107,7 @@ let affiche_pos (p : (int*int) array) (pos_tab : int array) (w : float) = (*p : 
 
 	
 
-	draw_text (String.cat "poids du prochain movement : " (Float.to_string (w *. 100. /. 23.))) (5*dx) 0 10 Color.black
+	draw_text (String.cat "poids du prochain movement : " (Float.to_string (w))) (5*dx) 0 10 Color.black
 
 
 

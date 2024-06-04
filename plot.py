@@ -9,16 +9,16 @@ def lire_fichier(file_path, precision=0):
     with open(file_path, 'r') as file:
         for line in file:
             parts = line.split()
-            x = float(parts[0]) * 100  # Multiplier la difficulté estimée par 10.2
+            x = float(parts[0]) * 4.3 - 1.66  # Multiplier la difficulté estimée par 10.2
             x = round(x, precision)  # Puis arrondir la difficulté estimée
             y = float(parts[1])  # Difficulté réelle
             # Ignorer les points dont l'abscisse (difficulté estimée) est 0
-            if x > 0 and y < 8:
+            if x > 0 and y < 7:
                 points.append((x, y))
     return points
 
 # Chemin du fichier texte
-file_path = 'data.txt'
+file_path = 'data_caca.txt'
 
 # Lire les points du fichier avec arrondi après multiplication
 points = lire_fichier(file_path, precision=2)

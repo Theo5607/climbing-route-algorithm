@@ -442,8 +442,6 @@ let affiche_pb pb =  (*calcul l'array des positions (x,y) , p et l'array des poi
   let arr_sommets = c |> Array.map (pos_tab_of_int n)  in
   let nm = Array.length arr_sommets in
   let arr_poids = Array.init nm (fun i -> Dijkstra.poids_arete g c.(i) c.( (i+1) mod nm )) in
-
-
   Affiche.loop arr_sommets p arr_poids 
 ;;
 
@@ -502,7 +500,6 @@ let diff_bloc pb =      (*renvoie entre 0. et 1. la moyenne des difficulteś des
 
     let diff_moy = ref 0. in
     let dist_moy = ref 0. in
-    let croise_moy = ref 0. in
 
     let n_mouv = (Array.length c) - 1 in
 
@@ -512,7 +509,6 @@ let diff_bloc pb =      (*renvoie entre 0. et 1. la moyenne des difficulteś des
       let i = (pos_tab_of_int n c.(k+1)).(m) in
       diff_moy := !diff_moy +. (prise_poids p pos_tab m i);
       dist_moy := !dist_moy +. (dist_poids p.(pos_tab.(m)) p.(i));
-      croise_moy := !croise_moy +. (croise_poids p pos_tab m p.(i));
     done;
 
     (!diff_moy +. !dist_moy) /. (foi n_mouv) 
@@ -520,32 +516,50 @@ let diff_bloc pb =      (*renvoie entre 0. et 1. la moyenne des difficulteś des
   with
   |Dijkstra.PasDeChemin -> (Printf.printf "pas_de_chemin\n" ; 0.)
   |Invalid_argument _ -> (Printf.printf "bug_bizarre\n" ; 0.)
+  |_ -> (Printf.printf "encore une erreur\n" ; 0.)
 
-(* let diff_bloc_caca pb =
-  let l = liste_prises pb in
-  (List.fold_left (fun acc c -> acc +. prise_score 2 c) 0. l) /. (l |> List.length |> foi)
-  
- *)
 
-(* let diff_blocs i j json =
+
+
+let diff_blocs i j json =
   let f = open_out "data_caca.txt" in
   let a = json |> member "data" |> to_list |> Array.of_list in
-  for k=i to j-1 do
-    Printf.fprintf f "%f %d\n" (diff_bloc_caca a.(k)) (a.(k) |> (member "grade") |> to_string |> grade_to_int)
+  for k=i to j do
+    Printf.fprintf f "%f %d\n" (diff_bloc a.(k)) (a.(k) |> (member "grade") |> to_string |> grade_to_int)
   done;
   close_out f
 
- *)
+
 
 let fwrite l =
   let f = open_out "data_caca.txt" in
   List.iter (fun (diff,grade) -> Printf.fprintf f "%f %d\n" diff grade) l;
   close_out f
 
-;;
+
+let moyenne_h pb =
+  let g, p = creer_graphe pb in
+  let n = Array.length p in
+  let dep = pos_depart pb p n in
+  let dist, pred = Dijkstra.dijkstra g dep in
+  let fin = find_best_end_pos pb p n dist in
+  let c = (Dijkstra.chemin pred dep fin) |> List.rev |> Array.of_list in
+  let nm = Array.length c in
+  let w = ref 0. in
+  for i=0 to nm-2 do
+    w := !w +. Dijkstra.poids_arete g c.(i) c.(i+1)
+  done;
+  !w /. (foi nm -. 1.)
+
+
+
+
+
+
+
 
 (* let json = Yojson.Basic.from_file "blocs/problems MoonBoard Masters 2017 25.json" in
-  json |> diff_blocs 100 |> fwrite *)
+  json |> diff_blocs 0 200 *)
 
 
 (* let calcul_arr_diff pb =
@@ -578,9 +592,10 @@ let arr_poids = Array.init nm (fun i -> Dijkstra.poids_arete g c.(i) c.( (i+1) m
 
 Affiche.loop arr_sommets p arr_poids *)
 
+;;
 
-(* let json = Yojson.Basic.from_file "blocs/bleu.json" in
-  json |> affiche_pb *)
+(* let json = Yojson.Basic.from_file "blocs/violetcov.json" in
+  json |> moyenne_h |> print_float *)
 
 
 (* pour theo : 

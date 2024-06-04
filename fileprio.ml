@@ -1,5 +1,8 @@
 type ('a, 'b) t = ('b * 'a) Tas.t
 
+let est_vide file =
+    Tas.est_vide file
+
 
 let cree taille_max defval defprio =
     Tas.cree taille_max (defprio, defval)

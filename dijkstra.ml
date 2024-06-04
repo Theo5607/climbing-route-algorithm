@@ -17,6 +17,7 @@ let relache d x y w =     (* remplace le chemin s --> y par le chemin s --> x --
     d.(y) <- d.(x) +. w
 
 let dijkstra (g: graphe) (s:int) =            (*renvoie un couple d * pred avec d les distances et pred les predecesseurs indiquant les sommets accessibles depuis s*)
+
     let d = initialise_estimation g s in
     let n = Array.length g in
     let a_visiter = Fileprio.cree n 0 0. in
@@ -25,14 +26,15 @@ let dijkstra (g: graphe) (s:int) =            (*renvoie un couple d * pred avec 
     done;
     Fileprio.diminue_priorite a_visiter s 0.;
     let pred = Array.make n None in
-    while not (Tas.est_vide a_visiter) do
+
+    while not (Fileprio.est_vide a_visiter) do
         let x = Fileprio.retire a_visiter in
         List.iter (fun y -> if est_tendue d x (fst y) (snd y) then (
                 Fileprio.diminue_priorite a_visiter (fst y) (d.(x) +. (snd y));
                 relache d x (fst y) (snd y) ;
                 pred.(fst y) <- Some x  ) ) g.(x) ;
-        
     done;
+    
     d, pred
 
 exception Trouve of int list;;
