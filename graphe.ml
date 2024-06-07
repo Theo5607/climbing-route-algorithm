@@ -585,10 +585,22 @@ Affiche.loop arr_sommets p arr_poids *)
   json |> affiche_pb *)
 
 
+
+
 let json = Yojson.Basic.from_file "blocs/problems MoonBoard Masters 2017 25.json" in
-let f = open_out "output.txt" in
+
 let a = json |> member "data" |> to_list |> Array.of_list in
-for k=0 to (Array.length a) - 1 do
-  Printf.fprintf f "%f %d\n" (moyenne_h a.(k)) (a.(k) |> (member "grade") |> to_string |> grade_to_int)
+let n = Array.length a in
+let diff = Array.make n 0. in
+let d = Array.init n (fun k -> 
+  let fu = fun () -> diff.(k) <- moyenne_h a.(k) in
+  Domain.spawn fu
+  ) in
+for k=0 to n-1 do
+  Domain.join d.(k)
+done;
+let f = open_out "output.txt" in
+for k=0 to n-1 do
+  Printf.fprintf f "%f %d\n" diff.(k) (a.(k) |> (member "grade") |> to_string |> grade_to_int)
 done;
 close_out f 
