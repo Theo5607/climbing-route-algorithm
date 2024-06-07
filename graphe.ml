@@ -330,13 +330,13 @@ let faisable (p : (int*int) array)  (pos_tab : int array) (m : int) (x2, y2) : b
     true
 
 
-let emonde g = (*retire les voisins qui apparaissent plusieurs fois ainsi que les aretes s -> s *)
+(* let emonde g = (*retire les voisins qui apparaissent plusieurs fois ainsi que les aretes s -> s *)
   let n = Array.length g in
   for x=0 to n-1 do 
     let vu = Array.make n false in
     vu.(x) <- true;
-    g.(x) <- List.filter (fun (y,_) -> if vu.(y) then false else (vu.(y) <- true; true)) g.(x)
-  done
+    g.(x) <- List.filter (fun (y,_) -> if vu.(y) then (print_string "vu\n" ;false) else (vu.(y) <- true; true)) g.(x)
+  done *)
 
 
 let liste_prises_augmentee pb = (*rajoute une prise de pieds pour le départ*)
@@ -346,33 +346,34 @@ let liste_prises_augmentee pb = (*rajoute une prise de pieds pour le départ*)
 
 
 let creer_graphe pb : (int * float) list array * (int * int) array = 
-  (*prend un probleme et renvoie le graph des positions dont les aretes sont les mouvements possibles*)
-  let l = liste_prises_augmentee pb in
-  let p = Array.of_list l in  (*array des prises du bloc*)
+  (*prend un probleme et renvoie le graphe des positions dont les aretes sont les mouvements possibles*)
+
+  let l = liste_prises_augmentee pb in  (*rajoute une prise de départ pour les pieds*)
+  let bloc = Array.of_list l in  (* (int*int) array des prises du bloc *)
 
   let n = List.length l in
   let npow4 = n*n*n*n in  (*theoriquement il y a n⁴ positions possibles sur le mur en ayant tous les membres sur une des n prises*)
   let g = Array.make npow4 [] in   
-  (*on represente chaque position par un array [md, mg, pd, pg] qui donne l'indice dans p de la prise sur laquelle chacun des 4 membres
-  est situé, cette position est ensuite encodée par un int entre 0 et n⁴-1 avec int_of_pos_tab pour limiter la taille du graphe et faciliter l'implementation*)
+  (*on represente chaque position par un array [md, mg, pd, pg] qui donne l'indice dans bloc de la prise sur laquelle chacun des 4 membres
+  est situé, cette position est ensuite encodée par un int entre 0 et n⁴-1 avec int_of_pos_tab pour faciliter l'implementation*)
 
-  for pos=0 to npow4 - 1 do    (*position en base n *)
+  for pos=0 to npow4 - 1 do    (* indice représentant la position *)
     let pos_tab = pos_tab_of_int n pos in
-    for m=0 to 3 do           (*m = indice du membre déplacé*)
-      for i=0 to n-1 do       (*i = indice de la nouvelle prise dans p*)
+    for m=0 to 3 do           (* m = indice du membre déplacé *)
+      for i=0 to n-1 do       (* i = indice de la nouvelle prise dans p *)
         
-        if (faisable p pos_tab m p.(i)) then begin
+        if (i <> pos_tab.(m)) && (faisable bloc pos_tab m bloc.(i)) then begin
+          (*on ajoute au graphe une arete de pos à pos' ou pos' est la position apres avoir deplacé le membre m sur la i-eme prise *)
           let v = pos_tab.(m) in
-          let w = poids p pos_tab m i in
+          let w = poids bloc pos_tab m i in
           pos_tab.(m) <- i;
-          g.(pos) <- ((int_of_pos_tab n pos_tab), w)::g.(pos);      (*on ajoute au graphe une arete de pos à pos' ou pos` est la position apres avoir deplacé le membre m sur la i-eme prise *)
+          g.(pos) <- ((int_of_pos_tab n pos_tab), w)::g.(pos);
           pos_tab.(m) <- v
         end
       done;
     done;
   done;
-  emonde g;
-  g,p
+  g,bloc
 
 
 
@@ -469,24 +470,6 @@ let deplacement n i1 i2 =   (*renvoie l'indice du membre déplacé entre 2 posit
   !m
 
 
-let diff_bloc_h pb =
-  try 
-    let g, p = creer_graphe pb in
-    let n = Array.length p in
-    let dep = pos_depart pb p n in
-    let dist, pred = Dijkstra.dijkstra g dep in
-    let fin = find_best_end_pos pb p n dist in
-    let c = (Dijkstra.chemin pred dep fin) |> List.rev |> Array.of_list in
-    let arr_sommets = c |> Array.map (pos_tab_of_int n)  in
-    let nm = Array.length arr_sommets in
-    let acc = ref 0. in
-    for i=0 to nm - 2 do
-      acc := !acc +. Dijkstra.poids_arete g c.(i) c.(i+1)
-    done;
-    !acc /. (foi (nm - 1))
-  with
-  |_ -> 0.
-
 
 let diff_bloc pb =      (*renvoie entre 0. et 1. la moyenne des difficulteś des mouvements*)
   try
@@ -538,18 +521,22 @@ let fwrite l =
 
 
 let moyenne_h pb =
-  let g, p = creer_graphe pb in
-  let n = Array.length p in
-  let dep = pos_depart pb p n in
-  let dist, pred = Dijkstra.dijkstra g dep in
-  let fin = find_best_end_pos pb p n dist in
-  let c = (Dijkstra.chemin pred dep fin) |> List.rev |> Array.of_list in
-  let nm = Array.length c in
-  let w = ref 0. in
-  for i=0 to nm-2 do
-    w := !w +. Dijkstra.poids_arete g c.(i) c.(i+1)
-  done;
-  !w /. (foi nm -. 1.)
+  try 
+    let g, p = creer_graphe pb in
+    let n = Array.length p in
+    let dep = pos_depart pb p n in
+    let dist, pred = Dijkstra.dijkstra g dep in
+    let fin = find_best_end_pos pb p n dist in
+    let c = (Dijkstra.chemin pred dep fin) |> List.rev |> Array.of_list in
+    let arr_sommets = c |> Array.map (pos_tab_of_int n)  in
+    let nm = Array.length arr_sommets in
+    let acc = ref 0. in
+    for i=0 to nm - 2 do
+      acc := !acc +. Dijkstra.poids_arete g c.(i) c.(i+1)
+    done;
+    !acc /. (foi (nm - 1))
+  with
+  |_ -> 0.
 
 
 
@@ -594,18 +581,14 @@ Affiche.loop arr_sommets p arr_poids *)
 
 ;;
 
-(* let json = Yojson.Basic.from_file "blocs/violetcov.json" in
-  json |> moyenne_h |> print_float *)
+(* let json = Yojson.Basic.from_file "blocs/jaunecov.json" in
+  json |> affiche_pb *)
 
 
-(* pour theo : 
-
-let pb = Yojson.Basic.from_file "blocs/bleu.json" in
-let g, p = creer_graphe pb in
-let n = Array.length p in
-let dep = pos_depart pb p n in
-let dist, pred = Dijkstra.dijkstra g dep in
-let fin = find_best_end_pos pb p n dist in
-let c = (Dijkstra.chemin pred dep fin) |> List.rev |> Array.of_list in
-let arr_sommets = Array.map (fun i -> (Array.map (fun i -> p.(i))) (pos_tab_of_int n i)) c in
-arr_sommets *)
+let json = Yojson.Basic.from_file "blocs/problems MoonBoard Masters 2017 25.json" in
+let f = open_out "output.txt" in
+let a = json |> member "data" |> to_list |> Array.of_list in
+for k=0 to (Array.length a) - 1 do
+  Printf.fprintf f "%f %d\n" (moyenne_h a.(k)) (a.(k) |> (member "grade") |> to_string |> grade_to_int)
+done;
+close_out f 
