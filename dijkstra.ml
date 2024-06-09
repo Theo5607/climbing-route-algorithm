@@ -1,3 +1,4 @@
+
 type graphe = (int*float) list array  (*array de liste d'adjacence avec des couples (voisin, poids) *)
 
 
@@ -6,17 +7,14 @@ let initialise_estimation (g: graphe) (s: int) : float array=
     a.(s) <- 0.;
     a
 
-
-let poids_arete g i j =
-    List.fold_left (fun acc (vois,w) -> if vois=j then min w acc else acc) max_float g.(i)
-
 let est_tendue d x y w =  (* regarde si le chemin s --> x --(w)--> y est meilleur que celui s-->y  *)
     d.(y) > d.(x) +. w
 
 let relache d x y w =     (* remplace le chemin s --> y par le chemin s --> x --(w)--> y qui est suposé meilleur *)
     d.(y) <- d.(x) +. w
 
-let dijkstra (g: graphe) (s:int) =            (*renvoie un couple d * pred avec d les distances et pred les predecesseurs indiquant les sommets accessibles depuis s*)
+let dijkstra (g: graphe) (s:int) =   
+    (* renvoie un couple d * pred avec d les distances et pred les predecesseurs indiquant les sommets accessibles depuis s*)
 
     let d = initialise_estimation g s in
     let n = Array.length g in
@@ -37,7 +35,14 @@ let dijkstra (g: graphe) (s:int) =            (*renvoie un couple d * pred avec 
     
     d, pred
 
+
+
+
+
 exception Trouve of int list;;
+
+let poids_arete g i j =
+    List.fold_left (fun acc (vois,w) -> if vois=j then min w acc else acc) max_float g.(i)
 
 let greedy_backtracking (g : graphe) s f =
     let vu = Array.make (Array.length g) false in

@@ -21,7 +21,7 @@ let iof = int_of_float;;
 let foi = float_of_int;;
 
 
-let diff_tab = [|              (*la matrice des diffs pour la moonboard*)
+(* let diff_tab = [|              (*la matrice des diffs pour la moonboard*)
 [|2.5;0.6;7.2;4.4;4.7;3.8;8.1;1.9;7.2;1.9;7.5|];
 [|7.8;9.4;8.1;5.3;8.1;5.0;4.7;6.3;10.0;9.4;4.7|];
 [|3.4;10.0;0.3;6.6;4.7;8.8;6.3;7.5;5.3;1.3;7.5|];
@@ -40,7 +40,7 @@ let diff_tab = [|              (*la matrice des diffs pour la moonboard*)
 [|4.1;3.8;9.4;7.5;3.1;8.1;6.9;7.2;6.6;6.6;7.8|];
 [|5.6;3.8;9.4;2.8;7.8;3.8;7.2;5.3;5.9;3.1;5.6|];
 [|3.4;4.4;8.1;5.0;7.8;4.1;6.9;6.3;6.6;6.6;2.5|]|]
-;;
+;; *)
 
 (*[|[|0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.|];
   [|0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.|];
@@ -84,7 +84,7 @@ let diff_tab = [|              (*la matrice des diffs pour la moonboard*)
 ;; *)
 
 
-(* let diff_tab = [|            (*bloc violet*)
+let diff_tab = [|            (*bloc violet*)
   [|0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.|];
   [|0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.|];
   [|0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.|];
@@ -103,7 +103,7 @@ let diff_tab = [|              (*la matrice des diffs pour la moonboard*)
   [|0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.|];
   [|0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.; 0.|];
   [|0.; 0.; 0.; 4.; 0.; 0.; 0.; 0.; 0.; 0.; 0.|]
-|] *)
+|]
 
 
 (* let diff_tab = [|            (*bloc bleu*)
@@ -148,27 +148,32 @@ let grade_to_int = function
   |_ -> 0
 
 
-let id_to_coord (s : string) : int*int =  (*renvoie les coordonnees de la prise ex : A4 -> (0,3)=(x,y) avec origine en bas a gauche *)
+let id_to_coord (s : string) : int*int =  
+  (*renvoie les coordonnees de la prise ex : A4 -> (0,3)=(x,y) avec origine en bas a gauche *)
   (-65 + int_of_char s.[0]) , (String.sub s 1 (-1 + String.length s) |> int_of_string) - 1
 
 
 
-let liste_prises pb : (int*int) list = (*renvoie la liste des coordonnees des prises d'un probleme *)
+let liste_prises pb : (int*int) list = 
+  (*renvoie la liste des coordonnees des prises d'un probleme *)
   List.map (fun p -> p |> member "description" |> to_string |> id_to_coord) (pb |> member "moves" |> to_list)
 
 
-let dist_prise (x1,y1) (x2,y2) =  (*renvoie la distance euclidienne de la prise 1 à la prise 2 *)
+let dist_prise (x1,y1) (x2,y2) =  
+  (*renvoie la distance euclidienne de la prise 1 à la prise 2 *)
   let d1 = (x1 - x2) |> abs |> foi in
   let d2 = (y1 - y2) |> abs |> foi in
   sqrt ((d1*.d1) +. (d2*.d2))
 
 
-let centre p pos_tab : int*int = (*renvoie la pos moyenne des 4 prises tenues*)
+let centre p pos_tab : int*int = 
+  (*renvoie la pos moyenne des 4 prises tenues*)
   ((Array.fold_left (fun acc i -> acc + fst p.(i)) 0 pos_tab) / 4) , ((Array.fold_left (fun acc i -> acc + snd p.(i)) 0 pos_tab) / 4)
 
 
 
-let int_of_pos_tab n t =  (*renvoie l'entier representé en base n par t*)
+let int_of_pos_tab n t =  
+  (*renvoie l'entier representé en base n par t*)
   let k = ref 1 in
   let acc = ref 0 in
   for i=0 to 3 do
@@ -177,7 +182,8 @@ let int_of_pos_tab n t =  (*renvoie l'entier representé en base n par t*)
   done;
   !acc
 
-let pos_tab_of_int n pos = (*renvoie pos en base n avec le bit de poids faible à gauche, t = [md, mg, pd, pg] *)
+let pos_tab_of_int n pos = 
+  (*renvoie pos en base n avec le bit de poids faible à gauche, t = [md, mg, pd, pg] *)
   let v = ref pos in
   let t = Array.make 4 0 in
   for i=0 to 3 do
@@ -186,7 +192,7 @@ let pos_tab_of_int n pos = (*renvoie pos en base n avec le bit de poids faible �
   done;
   t
 
-let prises_mains_depart pb = (*renvoie les coordonnees des prises de depart et de fin du bloc*)
+let prises_mains_depart pb = (*renvoie les coordonnees des prises de depart*)
   let l = pb |> member "moves" |> to_list in
   let depart = ref [] in
   List.iter(fun p -> 
@@ -235,7 +241,6 @@ let ecartement_vertical p pos_tab m i =
   if v > 11 then
     infinity
   else
-  (* 1. -. (Float.exp ( (-0.3)*.delta*.delta)) *)
   abs_float delta
 
 
@@ -248,20 +253,10 @@ let ecartement_horizontal p pos_tab m i =
   pos_tab.(m) <- temp;
 
   let delta = 2. -. (foi v) in
-  (* 1. -. (Float.exp ( (-0.5)*.delta*.delta)) *)
   abs_float delta
 
 
-
- 
-
-
-
-
-
-let dist_poids (x1,y1) (x2,y2) =   (*renvoie la distance entre les 2 prises sur 8, 1 si d > 8 = 1.6 m*)
-  (* let delta = (dist_prise (x1,y1) (x2,y2)) -. 2.5 in
-  1. -. (Float.exp ( (-1.)*.delta*.delta)) *)    
+let dist_poids (x1,y1) (x2,y2) =   (*renvoie la distance entre les 2 prises sur 8, 1 si d > 8 = 1.6 m*)  
   min 1. ((dist_prise (x1,y1) (x2,y2)) /. 8.)
 
 
@@ -276,7 +271,8 @@ let croise_poids p pos_tab m (x2,_) =   (*malus de 1 si on croise les mains ou l
 
 
 let prise_diff pos_tab m (x,y) = 
-  let n_membres = Array.fold_left (fun acc e -> if pos_tab.(m) = e then acc +. 1. else acc) 0. pos_tab in  (*nombres de membres sur cette prise*)
+  let n_membres = Array.fold_left (fun acc e -> if pos_tab.(m) = e then acc +. 1. else acc) 0. pos_tab in  
+  (*nombres de membres sur cette prise*)
   let diff = diff_tab.(17 - y).(x) /. 10. in
   if m = 0 || m = 1 then 
     n_membres *. diff
@@ -296,14 +292,16 @@ let prise_poids p pos_tab m i =
    !acc /. 4.
 
 
-let poids p pos_tab m i =  (* p : coordonnees des prises du bloc
-                              pos_tab : [md, mg, pd, pg]
-                              m : indice du membre deplacé dans [0,3]
-                              i : indice dans p de la nouvelle prise utilisee
+let poids p pos_tab m i =  (* 
+  p : coordonnees des prises du bloc
+  pos_tab : [md, mg, pd, pg]
+  m : indice du membre deplacé dans [0,3]
+  i : indice dans p de la nouvelle prise utilisee
 *)
 
    2. *. (dist_poids p.(pos_tab.(m)) p.(i)) +. 2. *. (croise_poids p pos_tab m p.(i)) 
-  +. 1. *. (ecartement_vertical p pos_tab m i) +.  1. *. (ecartement_horizontal p pos_tab m i) +. 2. *. (prise_poids p pos_tab m i) 
+  +. 1. *. (ecartement_vertical p pos_tab m i) +.  1. *. (ecartement_horizontal p pos_tab m i) 
+  +. 2. *. (prise_poids p pos_tab m i) 
 
 
 
@@ -315,21 +313,6 @@ let poids p pos_tab m i =  (* p : coordonnees des prises du bloc
 
 (*------------------creation du graphe----------------------------*)
 
-
-
-
-let faisable (p : (int*int) array)  (pos_tab : int array) (m : int) (x2, y2) : bool = 
-
-  dist_prise (centre p pos_tab) (x2,y2) < 8.0  && (*on verifie si la prise est atteignable *)
-
-  (snd p.(pos_tab.(m))) <= y2 + 1 &&                     (*on garde que les mouvements vers le haut ie y2 >= y1 - 1*)    
-  
-  if m=2 || m=3 then  (*si on bouge un pied*)
-    y2 <= (snd p.(pos_tab.(0))) - 2 && y2 <= (snd p.(pos_tab.(1))) - 2   (*on interdit d'avoir les pieds trop haut par rapport aux mains*)
-  else 
-    true
-
-
 (* let emonde g = (*retire les voisins qui apparaissent plusieurs fois ainsi que les aretes s -> s *)
   let n = Array.length g in
   for x=0 to n-1 do 
@@ -339,6 +322,19 @@ let faisable (p : (int*int) array)  (pos_tab : int array) (m : int) (x2, y2) : b
   done *)
 
 
+let faisable (p : (int*int) array)  (pos_tab : int array) (m : int) (x2, y2) : bool = 
+
+  dist_prise (centre p pos_tab) (x2,y2) < 8.0  && (*on verifie si la prise est atteignable *)
+
+  (snd p.(pos_tab.(m))) <= y2 + 1 &&     (*on garde que les mouvements vers le haut (1 de tolérance)*)    
+  
+  if m=2 || m=3 then  (*si on bouge un pied*)
+    y2 <= (snd p.(pos_tab.(0))) - 2 && y2 <= (snd p.(pos_tab.(1))) - 2   
+    (*on interdit d'avoir les pieds trop haut par rapport aux mains*)
+  else 
+    true
+
+
 let liste_prises_augmentee pb = (*rajoute une prise de pieds pour le départ*)
   let l = liste_prises pb in
   let d1,d2 = prises_mains_depart pb in
@@ -346,30 +342,33 @@ let liste_prises_augmentee pb = (*rajoute une prise de pieds pour le départ*)
 
 
 let creer_graphe pb : (int * float) list array * (int * int) array = 
-  (*prend un probleme et renvoie le graphe des positions dont les aretes sont les mouvements possibles*)
+  (*prend un bloc et renvoie le graphe des positions dont les aretes sont les mouvements possibles sous forme de liste d'adjacence*)
 
-  let l = liste_prises_augmentee pb in  (*rajoute une prise de départ pour les pieds*)
+  let l = liste_prises_augmentee pb in  (*rajoute une prise de depart pour les pieds d'abscisse entre les 2 mains*)
   let bloc = Array.of_list l in  (* (int*int) array des prises du bloc *)
 
   let n = List.length l in
-  let npow4 = n*n*n*n in  (*theoriquement il y a n⁴ positions possibles sur le mur en ayant tous les membres sur une des n prises*)
+  let npow4 = n*n*n*n in
   let g = Array.make npow4 [] in   
-  (*on represente chaque position par un array [md, mg, pd, pg] qui donne l'indice dans bloc de la prise sur laquelle chacun des 4 membres
-  est situé, cette position est ensuite encodée par un int entre 0 et n⁴-1 avec int_of_pos_tab pour faciliter l'implementation*)
+  (*on represente chaque position par un array [md, mg, pd, pg]
+  encodee par un int entre 0 et n^4-1 avec int_of_pos_tab *)
 
-  for pos=0 to npow4 - 1 do    (* indice représentant la position *)
+  for pos=0 to npow4 - 1 do 
+  (* pos = indice representant la position *)
     let pos_tab = pos_tab_of_int n pos in
-    for m=0 to 3 do           (* m = indice du membre déplacé *)
-      for i=0 to n-1 do       (* i = indice de la nouvelle prise dans p *)
-        
-        if (i <> pos_tab.(m)) && (faisable bloc pos_tab m bloc.(i)) then begin
-          (*on ajoute au graphe une arete de pos à pos' ou pos' est la position apres avoir deplacé le membre m sur la i-eme prise *)
+    for m=0 to 3 do         (* m = indice du membre deplace *)
+      for i=0 to n-1 do     (* i = indice de la nouvelle prise *)
+
+        if (i <> pos_tab.(m)) && 
+        (faisable bloc pos_tab m bloc.(i)) then begin
+          (*on ajoute au graphe une arete de pos a pos'*)
           let v = pos_tab.(m) in
           let w = poids bloc pos_tab m i in
           pos_tab.(m) <- i;
           g.(pos) <- ((int_of_pos_tab n pos_tab), w)::g.(pos);
           pos_tab.(m) <- v
         end
+
       done;
     done;
   done;
@@ -386,8 +385,8 @@ let creer_graphe pb : (int * float) list array * (int * int) array =
 
 
 
-let pos_depart pb p n = (*renvoie l'int indiquant la position de depart*)
-  let d1,d2 = prises_mains_depart pb in
+let pos_depart pb (p : (int*int) array) n = (*renvoie l'int indiquant la position de depart*)
+  let d1,d2 = prises_mains_depart pb in  (*deux couples d'entiers*)
   (*d1 : main gauche (x plus petit)  d2 : main droite*)
   let p1 = ref (-1) in
   let p2 = ref (-1) in  (*indice dans p de d1 et d2*)
@@ -418,7 +417,7 @@ let find_best_end_pos pb p n dist =  (*renvoie la position de fin la plus proche
   let n2 = n*n in
   let n4 = n2*n2 in
   let d_min = ref max_float in
-  for k=0 to (n4 - 0 - !p2 - n*(!p1)) / n2 do  (*i mod n² = p2 + n*p1*)
+  for k=0 to (n4 - !p2 - n*(!p1)) / n2 do  (*i mod n² = p2 + n*p1*)
     let i = !p2 + n*(!p1) + k * n2 in    (*toutes les pos où les mains sont sur les prises de fin*)
     if dist.(i) < !d_min then begin
       i_min := i;
@@ -581,13 +580,13 @@ Affiche.loop arr_sommets p arr_poids *)
 
 ;;
 
-(* let json = Yojson.Basic.from_file "blocs/jaunecov.json" in
-  json |> affiche_pb *)
+let json = Yojson.Basic.from_file "blocs/violetcov.json" in
+  json |> affiche_pb
 
 
 
 
-let json = Yojson.Basic.from_file "blocs/problems MoonBoard Masters 2017 25.json" in
+(* let json = Yojson.Basic.from_file "blocs/problems MoonBoard Masters 2017 25.json" in
 
 let a = json |> member "data" |> to_list |> Array.of_list in
 let n = Array.length a in
@@ -603,4 +602,4 @@ let f = open_out "output.txt" in
 for k=0 to n-1 do
   Printf.fprintf f "%f %d\n" diff.(k) (a.(k) |> (member "grade") |> to_string |> grade_to_int)
 done;
-close_out f 
+close_out f  *)
