@@ -116,7 +116,7 @@ let loop (pos_tab_arr : int array array) (p : (int*int) array) (arr_poids : floa
 	set_target_fps 60;
 	let n = Array.length pos_tab_arr in
 	let i = ref 0 in
-	while not ( window_should_close () ) do
+	while not ( window_should_close () ) do (*parcourir les positions*)
 		if is_key_pressed Key.Right then
 			i := (!i + 1) mod n
 		else if is_key_pressed Key.Left then

@@ -432,16 +432,19 @@ let find_best_end_pos pb p n dist =  (*renvoie la position de fin la plus proche
 
 
 
-let affiche_pb pb =  (*calcul l'array des positions (x,y) , p et l'array des poids des mouvements depuis ces positions puis affiche*) 
+let affiche_pb pb =  
+  (*calcul l'array des positions (x,y) , p et l'array des poids des mouvements depuis ces positions puis affiche*) 
   let g, p = creer_graphe pb in
   let n = Array.length p in
   let dep = pos_depart pb p n in
   let dist, pred = Dijkstra.dijkstra g dep in
   let fin = find_best_end_pos pb p n dist in
+
   let c = (Dijkstra.chemin pred dep fin) |> List.rev |> Array.of_list in
   let arr_sommets = c |> Array.map (pos_tab_of_int n)  in
   let nm = Array.length arr_sommets in
   let arr_poids = Array.init nm (fun i -> Dijkstra.poids_arete g c.(i) c.( (i+1) mod nm )) in
+  
   Affiche.loop arr_sommets p arr_poids 
 ;;
 
@@ -580,13 +583,13 @@ Affiche.loop arr_sommets p arr_poids *)
 
 ;;
 
-let json = Yojson.Basic.from_file "blocs/violetcov.json" in
+(* let json = Yojson.Basic.from_file "blocs/violetcov.json" in
   json |> affiche_pb
+ *)
 
+(* 
 
-
-
-(* let json = Yojson.Basic.from_file "blocs/problems MoonBoard Masters 2017 25.json" in
+let json = Yojson.Basic.from_file "blocs/problems MoonBoard Masters 2017 25.json" in
 
 let a = json |> member "data" |> to_list |> Array.of_list in
 let n = Array.length a in
@@ -603,3 +606,31 @@ for k=0 to n-1 do
   Printf.fprintf f "%f %d\n" diff.(k) (a.(k) |> (member "grade") |> to_string |> grade_to_int)
 done;
 close_out f  *)
+
+
+let n_threads = 4 in
+
+let json = Yojson.Basic.from_file "blocs/problems MoonBoard Masters 2017 25.json" in
+
+let a = json |> member "data" |> to_list |> Array.of_list in
+let n = Array.length a in
+let diff = Array.make n 0. in  (*array partagé contenant les résultats*)
+
+let thread n n_threads i = fun () -> (   (*thread d'indice i*)
+  let k = ref i in
+  while !k < n do
+    diff.(!k) <- moyenne_h a.(!k);
+    k := !k + n_threads;
+  done)
+in
+
+let d = Array.init n_threads (fun i -> Domain.spawn (thread n n_threads i)) in
+for k=0 to n_threads-1 do
+    Domain.join d.(k)
+  done;
+
+let output = open_out "output.txt" in   (*écriture dans un fichier des résultats*)
+for k=0 to n-1 do
+  Printf.fprintf output "%f\n" diff.(k)
+done;
+close_out output
